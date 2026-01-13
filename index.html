@@ -3,31 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud - Gauges</title>
+    <title>Capellán Cloud Final</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    
     <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: sans-serif; padding: 15px; text-align: center; margin: 0; }
-        .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin: 20px auto; max-width: 900px; background: #1e293b; padding: 20px; border-radius: 20px; }
-        .gauge-box { background: #334155; padding: 10px; border-radius: 15px; }
-        .status { color: #22c55e; font-size: 0.8rem; margin-bottom: 10px; }
-        .rain-card { background: #1e293b; padding: 15px; border-radius: 12px; max-width: 200px; margin: 10px auto; border-top: 4px solid #3b82f6; }
-        
-        /* Historiales */
-        .section-title { text-align: left; max-width: 800px; margin: 20px auto 10px; color: #94a3b8; font-size: 0.9rem; font-weight: bold; border-left: 4px solid #3b82f6; padding-left: 10px; }
-        .log-container { background: #1e293b; border-radius: 10px; max-width: 800px; margin: 0 auto 20px; border: 1px solid #334155; overflow: hidden; }
-        .log-entry { padding: 10px 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; font-size: 0.85em; text-align: left; }
-        .critical { border-left: 5px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
-        table { width: 100%; max-width: 800px; margin: 0 auto; background: #1e293b; border-radius: 10px; font-size: 0.85rem; border-collapse: collapse; }
-        th { background: #334155; color: #94a3b8; padding: 10px; }
-        td { padding: 8px; border-bottom: 1px solid #334155; }
+        body { background: #0f172a; color: #f1f5f9; font-family: sans-serif; text-align: center; padding: 10px; }
+        .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin: 20px auto; }
+        .gauge-box { background: #1e293b; padding: 10px; border-radius: 15px; min-width: 160px; }
+        .status { color: #fbbf24; font-weight: bold; margin-bottom: 10px; }
+        .rain-card { background: #334155; padding: 15px; border-radius: 10px; max-width: 200px; margin: 10px auto; }
+        table { width: 100%; max-width: 600px; margin: 20px auto; border-collapse: collapse; font-size: 0.8rem; }
+        th, td { padding: 8px; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; }
     </style>
 </head>
 <body>
-    <h2 style="margin: 10px 0;">🛰️ CAPELLÁN CLOUD GAUGES</h2>
-    <div id="st" class="status">Cargando instrumentos...</div>
+    <h2>🛰️ CAPELLÁN ENTERPRISE</h2>
+    <div id="st" class="status">INICIALIZANDO SISTEMA...</div>
     
     <div class="gauges-container">
         <div id="chart_temp" class="gauge-box"></div>
@@ -37,49 +30,78 @@
 
     <div class="rain-card">LLUVIA: <strong id="l">--</strong></div>
 
-    <div class="section-title">⚠️ Recomendaciones</div>
-    <div class="log-container" id="reco-log"><div style="padding:15px">Esperando datos...</div></div>
-
-    <div class="section-title">📜 Historial</div>
     <table>
-        <thead><tr><th>Hora</th><th>T</th><th>H</th><th>NH3</th><th>Lluvia</th></tr></thead>
+        <thead><tr><th>Hora</th><th>Temp</th><th>Hum</th><th>NH3</th></tr></thead>
         <tbody id="data-hist"></tbody>
     </table>
-function escucharDatos() {
-        console.log("Intentando conectar a Firebase...");
-        
-        db.ref('galpon/actual').on('value', (snapshot) => {
-            const d = snapshot.val();
-            console.log("Datos recibidos de Firebase:", d);
 
+<script>
+    const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let chartT, chartH, chartN, dataT, dataH, dataN;
+    let optionsT = { width: 160, height: 160, redFrom: 33, redTo: 50, yellowFrom: 28, yellowTo: 33, minorTicks: 5, max: 50 };
+    let optionsH = { width: 160, height: 160, yellowFrom: 70, yellowTo: 85, redFrom: 85, redTo: 100, minorTicks: 5 };
+    let optionsN = { width: 160, height: 160, redFrom: 25, redTo: 100, yellowFrom: 15, yellowTo: 25, minorTicks: 5, max: 100 };
+    
+    let logsData = [];
+
+    google.charts.load('current', {'packages':['gauge']});
+    google.charts.setOnLoadCallback(() => {
+        // 1. Crear las tablas de datos
+        dataT = google.visualization.arrayToDataTable([['Label', 'Value'],['Temp', 0]]);
+        dataH = google.visualization.arrayToDataTable([['Label', 'Value'],['Hum %', 0]]);
+        dataN = google.visualization.arrayToDataTable([['Label', 'Value'],['NH3', 0]]);
+
+        // 2. Crear los objetos de los relojes
+        chartT = new google.visualization.Gauge(document.getElementById('chart_temp'));
+        chartH = new google.visualization.Gauge(document.getElementById('chart_hum'));
+        chartN = new google.visualization.Gauge(document.getElementById('chart_nh3'));
+
+        // 3. Dibujar por primera vez (en cero)
+        chartT.draw(dataT, optionsT);
+        chartH.draw(dataH, optionsH);
+        chartN.draw(dataN, optionsN);
+
+        console.log("Relojes listos. Conectando a Firebase...");
+        conectarFirebase();
+    });
+
+    function conectarFirebase() {
+        db.ref('galpon/actual').on('value', (snap) => {
+            const d = snap.val();
             if (d) {
-                const hora = new Date().toLocaleTimeString();
+                const h = new Date().toLocaleTimeString();
+                console.log("Actualizando relojes con:", d);
+
+                // ACTUALIZAR RELOJES USANDO TUS NOMBRES EXACTOS
+                if(d.temperatura !== undefined) { 
+                    dataT.setValue(0, 1, parseFloat(d.temperatura)); 
+                    chartT.draw(dataT, optionsT); 
+                }
+                if(d.humedad !== undefined) { 
+                    dataH.setValue(0, 1, parseFloat(d.humedad)); 
+                    chartH.draw(dataH, optionsH); 
+                }
+                if(d.nh3_ppm !== undefined) { 
+                    dataN.setValue(0, 1, parseFloat(d.nh3_ppm)); 
+                    chartN.draw(dataN, optionsN); 
+                }
                 
-                // USAMOS LOS NOMBRES QUE VEMOS EN TU CONSOLA
-                // temperatura, humedad, nh3_ppm, lluvia
-                if(d.temperatura !== undefined) { dataT.setValue(0, 1, d.temperatura); chartT.draw(dataT, optionsT); }
-                if(d.humedad !== undefined) { dataH.setValue(0, 1, d.humedad); chartH.draw(dataH, optionsH); }
-                if(d.nh3_ppm !== undefined) { dataN.setValue(0, 1, d.nh3_ppm); chartN.draw(dataN, optionsN); }
-                
-                document.getElementById('l').innerText = d.lluvia || "--";
-                document.getElementById('st').innerText = "CONECTADO - " + hora;
+                document.getElementById('l').innerText = d.lluvia || "NO";
+                document.getElementById('st').innerText = "VIVO - " + h;
                 document.getElementById('st').style.color = "#22c55e";
 
-                // Actualizar tabla de historial (ajustado a nombres largos)
-                actualizarHistorial(d, hora);
+                // Historial
+                logsData.unshift({h:h, t:d.temperatura, hu:d.humedad, n:d.nh3_ppm});
+                if(logsData.length > 5) logsData.pop();
+                let htm = "";
+                logsData.forEach(e => { htm += `<tr><td>${e.h}</td><td>${e.t}°</td><td>${e.hu}%</td><td>${e.n}</td></tr>`; });
+                document.getElementById('data-hist').innerHTML = htm;
             }
         });
     }
-
-    function actualizarHistorial(d, hora) {
-        // Ajustamos también aquí los nombres
-        logsData.unshift({h:hora, t:d.temperatura, hu:d.humedad, n:d.nh3_ppm, l:d.lluvia});
-        if(logsData.length > 8) logsData.pop();
-        let htm = "";
-        logsData.forEach(e => { 
-            htm += `<tr><td>${e.h}</td><td>${e.t}°</td><td>${e.hu}%</td><td>${e.n}</td><td>${e.l}</td></tr>`; 
-        });
-        document.getElementById('data-hist').innerHTML = htm;
-    }
+</script>
 </body>
 </html>
