@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capellán Cloud Monitor</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <style>
+        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; text-align: center; }
+        .header { margin-bottom: 30px; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; max-width: 800px; margin: auto; }
+        .card { background: #1e293b; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; }
+        .card.alert { border-top-color: #ef4444; }
+        .label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .value { font-size: 2.2rem; font-weight: bold; display: block; margin-top: 5px; }
+        .unit { font-size: 1rem; color: #64748b; }
+        .status { margin-top: 20px; font-size: 0.9rem; color: #22c55e; }
+        .status.loading { color: #fbbf24; }
+        #reco { background: #1e293b; margin: 20px auto; padding: 15px; max-width: 800px; border-radius: 10px; border-left: 5px solid #3b82f6; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>MONITOR CAPELLÁN 🛰️</h1>
+        <div id="connection-status" class="status loading">🟡 Conectando con la nube...</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <span class="label">Temperatura</span>
+            <span class="value" id="temp">--</span>
+            <span class="unit">°C</span>
+        </div>
+        <div class="card">
+            <span class="label">Humedad</span>
+            <span class="value" id="hum">--</span>
+            <span class="unit">%</span>
+        </div>
+        <div class="card" id="card-nh3">
+            <span class="label">Amoníaco (NH3)</span>
+            <span class="value" id="nh3">--</span>
+            <span class="unit">PPM</span>
+        </div>
+        <div class="card">
+            <span class="label">Lluvia</span>
+            <span class="value" id="rain">--</span>
+        </div>
+    </div>
+
+    <div id="reco">
+        <strong>💡 Recomendación:</strong> <span id="reco-text">Esperando datos...</span>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN DE TU FIREBASE
+        const firebaseConfig = {
+            databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com"
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Leer datos en tiempo real de la ruta "/actual"
+        db.ref('/actual').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('temp').innerText = data.T;
+                document.getElementById('hum').innerText = data.H;
+                document.getElementById('nh3').innerText = data.N;
+                document.getElementById('rain').innerText = data.L;
+                
+                document.getElementById('connection-status').innerText = "🟢 Nube Sincronizada: " + new Date().toLocaleTimeString();
+                document.getElementById('connection-status').className = "status";
+
+                // Lógica de recomendaciones
+                let reco = "Condiciones estables en el galpón.";
+                let cardNh3 = document.getElementById('card-nh3');
+                
+                if(data.N > 25) {
+                    reco = "⚠️ NIVEL CRÍTICO DE AMONÍACO. Activar ventilación máxima de inmediato.";
+                    cardNh3.style.borderTopColor = "#ef4444";
+                } else if(data.T > 33) {
+                    reco = "🌡️ CALOR EXCESIVO. Verificar sistema de nebulización.";
+                    cardNh3.style.borderTopColor = "#3b82f6";
+                } else if(data.L === "SI") {
+                    reco = "🌧️ LLUVIA DETECTADA. Asegurar cortinas laterales.";
+                } else {
+                    cardNh3.style.borderTopColor = "#3b82f6";
+                }
+                document.getElementById('reco-text').innerText = reco;
+            }
+        });
+    </script>
+</body>
+</html>
