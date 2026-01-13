@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud Pro</title>
+    <title>Capellán Cloud - Monitor Total</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -14,19 +14,24 @@
         .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
         .gauge-card { background: #1e293b; padding: 10px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         
-        /* INDICADOR DE LLUVIA MEJORADO */
-        .rain-status { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 300px; margin: 20px auto; border: 2px solid #334155; transition: 0.3s; }
-        .is-raining { background: #1d4ed8 !important; border-color: #60a5fa !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        .rain-status { background: #1e293b; padding: 15px; border-radius: 15px; max-width: 250px; margin: 20px auto; border: 2px solid #334155; transition: 0.3s; }
+        .is-raining { background: #1d4ed8 !important; border-color: #60a5fa !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
         
-        .log-container { background: #1e293b; border-radius: 15px; max-width: 600px; margin: 20px auto; overflow: hidden; text-align: left; }
+        .section-title { text-align: left; max-width: 700px; margin: 20px auto 10px; color: #94a3b8; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; border-left: 4px solid #3b82f6; padding-left: 10px; }
+        
+        .container-box { background: #1e293b; border-radius: 15px; max-width: 700px; margin: 0 auto 20px; overflow: hidden; text-align: left; }
         .log-entry { padding: 10px 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; font-size: 0.85rem; }
         .critico { border-left: 5px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { background: #334155; color: #94a3b8; padding: 10px; text-align: center; }
+        td { padding: 10px; border-bottom: 1px solid #334155; text-align: center; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2 style="margin:0;">🛰️ CAPELLÁN CLOUD</h2>
-        <span id="update-box" class="update-tag">ESPERANDO SEÑAL...</span>
+        <h2 style="margin:0;">🛰️ CAPELLÁN CLOUD PRO</h2>
+        <span id="update-box" class="update-tag">SINCRONIZANDO...</span>
     </div>
 
     <div class="gauges-container">
@@ -36,12 +41,20 @@
     </div>
 
     <div id="rain-card" class="rain-status">
-        <div style="font-size: 0.8rem; color: #94a3b8;">ESTADO DEL CLIMA</div>
-        <div id="rain-text" style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">SIN LLUVIA</div>
+        <div style="font-size: 0.7rem; color: #94a3b8;">SENSOR DE LLUVIA</div>
+        <div id="rain-text" style="font-size: 1.2rem; font-weight: bold;">--</div>
     </div>
 
-    <h3 style="text-align:left; max-width:600px; margin: 20px auto 10px;">🕒 LOG DE EVENTOS</h3>
-    <div id="log" class="log-container"><div style="padding:15px">Iniciando bitácora...</div></div>
+    <div class="section-title">⚠️ RECOMENDACIONES</div>
+    <div id="log" class="container-box"><div style="padding:15px; color:#64748b;">Esperando eventos...</div></div>
+
+    <div class="section-title">📜 HISTORIAL DE LECTURAS</div>
+    <div class="container-box">
+        <table>
+            <thead><tr><th>Hora</th><th>Temp</th><th>Hum</th><th>NH3</th><th>Lluvia</th></tr></thead>
+            <tbody id="hist-table"></tbody>
+        </table>
+    </div>
 
 <script>
     const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
@@ -51,17 +64,16 @@
     let chartT, chartH, chartN, dataT, dataH, dataN;
     let opt = { width: 150, height: 150, minorTicks: 5 };
     let lastEvent = "";
+    let dataHistory = [];
 
     google.charts.load('current', {'packages':['gauge']});
     google.charts.setOnLoadCallback(() => {
         dataT = google.visualization.arrayToDataTable([['Label', 'Value'],['Temp', 0]]);
         dataH = google.visualization.arrayToDataTable([['Label', 'Value'],['Hum %', 0]]);
         dataN = google.visualization.arrayToDataTable([['Label', 'Value'],['NH3', 0]]);
-        
         chartT = new google.visualization.Gauge(document.getElementById('chart_t'));
         chartH = new google.visualization.Gauge(document.getElementById('chart_h'));
         chartN = new google.visualization.Gauge(document.getElementById('chart_n'));
-
         escucharFirebase();
     });
 
@@ -76,24 +88,19 @@
                 dataH.setValue(0, 1, parseFloat(d.humedad)); chartH.draw(dataH, {...opt, redFrom: 85, redTo: 100, yellowFrom: 70, yellowTo: 85});
                 dataN.setValue(0, 1, parseFloat(d.nh3_ppm)); chartN.draw(dataN, {...opt, redFrom: 25, redTo: 100, yellowFrom: 15, yellowTo: 25, max: 100});
 
-                // 2. Indicador de Lluvia
-                const rainCard = document.getElementById('rain-card');
-                const rainText = document.getElementById('rain-text');
-                if(d.lluvia == "SI") {
-                    rainCard.className = "rain-status is-raining";
-                    rainText.innerText = "🌧️ LLOVIENDO";
-                } else {
-                    rainCard.className = "rain-status";
-                    rainText.innerText = "☀️ DESPEJADO";
-                }
+                // 2. Lluvia
+                const rCard = document.getElementById('rain-card');
+                const rText = document.getElementById('rain-text');
+                if(d.lluvia == "SI") { rCard.className = "rain-status is-raining"; rText.innerText = "🌧️ LLOVIENDO"; }
+                else { rCard.className = "rain-status"; rText.innerText = "☀️ DESPEJADO"; }
 
-                // 3. Status y Log
                 document.getElementById('update-box').innerText = "VIVO: " + h;
-                
+
+                // 3. LOG DE RECOMENDACIONES
                 let evt = ""; let esCritico = false;
-                if(d.nh3_ppm > 25) { evt = "NH3 ALTO: " + d.nh3_ppm + " ppm"; esCritico = true; }
-                else if(d.temperatura > 33) { evt = "CALOR: " + d.temperatura + "°C"; esCritico = true; }
-                else if(d.lluvia == "SI") { evt = "Lluvia detectada"; esCritico = false; }
+                if(d.nh3_ppm > 25) { evt = "NH3 CRÍTICO: Ventilar ya"; esCritico = true; }
+                else if(d.temperatura > 33) { evt = "CALOR: Activar nebulizadores"; esCritico = true; }
+                else if(d.lluvia == "SI") { evt = "LLUVIA: Revisar cortinas"; esCritico = false; }
 
                 if(evt != "" && evt != lastEvent) {
                     const log = document.getElementById('log');
@@ -104,6 +111,15 @@
                     log.prepend(item);
                     lastEvent = evt;
                 }
+
+                // 4. HISTORIAL DE LECTURAS (TABLA)
+                dataHistory.unshift({time: h, temp: d.temperatura, hum: d.humedad, nh3: d.nh3_ppm, rain: d.lluvia});
+                if(dataHistory.length > 10) dataHistory.pop();
+                let tableHtml = "";
+                dataHistory.forEach(row => {
+                    tableHtml += `<tr><td>${row.time}</td><td>${row.temp}°</td><td>${row.hum}%</td><td>${row.nh3}</td><td>${row.rain}</td></tr>`;
+                });
+                document.getElementById('hist-table').innerHTML = tableHtml;
             }
         });
     }
