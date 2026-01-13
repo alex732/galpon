@@ -3,35 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud - Monitor Total</title>
+    <title>Capellán Cloud - Control Total</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
         body { background: #0f172a; color: #f1f5f9; font-family: sans-serif; text-align: center; padding: 10px; margin: 0; }
-        .header { background: #1e293b; padding: 15px; border-radius: 0 0 20px 20px; margin-bottom: 20px; }
+        .header { background: #1e293b; padding: 15px; border-radius: 0 0 20px 20px; margin-bottom: 20px; border-bottom: 3px solid #3b82f6; }
         .update-tag { background: #334155; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; color: #22c55e; border: 1px solid #22c55e; }
-        .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+        .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 20px; }
         .gauge-card { background: #1e293b; padding: 10px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         
-        .rain-status { background: #1e293b; padding: 15px; border-radius: 15px; max-width: 250px; margin: 20px auto; border: 2px solid #334155; transition: 0.3s; }
-        .is-raining { background: #1d4ed8 !important; border-color: #60a5fa !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        .rain-status { background: #1e293b; padding: 15px; border-radius: 15px; max-width: 250px; margin: 0 auto 20px; border: 2px solid #334155; }
+        .is-raining { background: #1d4ed8 !important; border-color: #60a5fa !important; }
         
-        .section-title { text-align: left; max-width: 700px; margin: 20px auto 10px; color: #94a3b8; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; border-left: 4px solid #3b82f6; padding-left: 10px; }
+        .section-title { text-align: left; max-width: 750px; margin: 20px auto 10px; color: #94a3b8; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         
-        .container-box { background: #1e293b; border-radius: 15px; max-width: 700px; margin: 0 auto 20px; overflow: hidden; text-align: left; }
-        .log-entry { padding: 10px 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; font-size: 0.85rem; }
-        .critico { border-left: 5px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .container-box { background: #1e293b; border-radius: 15px; max-width: 750px; margin: 0 auto 20px; overflow: hidden; text-align: left; border: 1px solid #334155; }
+        
+        /* Estilo para el Historial de Recomendaciones */
+        .reco-item { padding: 12px 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .reco-critica { border-left: 5px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .reco-aviso { border-left: 5px solid #3b82f6; background: rgba(59, 130, 246, 0.1); }
 
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        th { background: #334155; color: #94a3b8; padding: 10px; text-align: center; }
+        th { background: #334155; color: #94a3b8; padding: 10px; }
         td { padding: 10px; border-bottom: 1px solid #334155; text-align: center; }
     </style>
 </head>
 <body>
     <div class="header">
         <h2 style="margin:0;">🛰️ CAPELLÁN CLOUD PRO</h2>
-        <span id="update-box" class="update-tag">SINCRONIZANDO...</span>
+        <span id="update-box" class="update-tag">CONECTANDO...</span>
     </div>
 
     <div class="gauges-container">
@@ -41,12 +44,13 @@
     </div>
 
     <div id="rain-card" class="rain-status">
-        <div style="font-size: 0.7rem; color: #94a3b8;">SENSOR DE LLUVIA</div>
-        <div id="rain-text" style="font-size: 1.2rem; font-weight: bold;">--</div>
+        <div id="rain-text" style="font-size: 1.1rem; font-weight: bold;">--</div>
     </div>
 
-    <div class="section-title">⚠️ RECOMENDACIONES</div>
-    <div id="log" class="container-box"><div style="padding:15px; color:#64748b;">Esperando eventos...</div></div>
+    <div class="section-title">⚠️ HISTORIAL DE RECOMENDACIONES</div>
+    <div id="reco-log" class="container-box">
+        <div style="padding:15px; color:#64748b">Esperando eventos críticos...</div>
+    </div>
 
     <div class="section-title">📜 HISTORIAL DE LECTURAS</div>
     <div class="container-box">
@@ -63,7 +67,7 @@
 
     let chartT, chartH, chartN, dataT, dataH, dataN;
     let opt = { width: 150, height: 150, minorTicks: 5 };
-    let lastEvent = "";
+    let lastRecoMsg = "";
     let dataHistory = [];
 
     google.charts.load('current', {'packages':['gauge']});
@@ -74,16 +78,16 @@
         chartT = new google.visualization.Gauge(document.getElementById('chart_t'));
         chartH = new google.visualization.Gauge(document.getElementById('chart_h'));
         chartN = new google.visualization.Gauge(document.getElementById('chart_n'));
-        escucharFirebase();
+        iniciarMonitor();
     });
 
-    function escucharFirebase() {
+    function iniciarMonitor() {
         db.ref('galpon/actual').on('value', (s) => {
             const d = s.val();
             if(d) {
                 const h = new Date().toLocaleTimeString();
                 
-                // 1. Actualizar Relojes
+                // 1. Relojes
                 dataT.setValue(0, 1, parseFloat(d.temperatura)); chartT.draw(dataT, {...opt, redFrom: 33, redTo: 50, yellowFrom: 28, yellowTo: 33, max: 50});
                 dataH.setValue(0, 1, parseFloat(d.humedad)); chartH.draw(dataH, {...opt, redFrom: 85, redTo: 100, yellowFrom: 70, yellowTo: 85});
                 dataN.setValue(0, 1, parseFloat(d.nh3_ppm)); chartN.draw(dataN, {...opt, redFrom: 25, redTo: 100, yellowFrom: 15, yellowTo: 25, max: 100});
@@ -96,23 +100,24 @@
 
                 document.getElementById('update-box').innerText = "VIVO: " + h;
 
-                // 3. LOG DE RECOMENDACIONES
-                let evt = ""; let esCritico = false;
-                if(d.nh3_ppm > 25) { evt = "NH3 CRÍTICO: Ventilar ya"; esCritico = true; }
-                else if(d.temperatura > 33) { evt = "CALOR: Activar nebulizadores"; esCritico = true; }
-                else if(d.lluvia == "SI") { evt = "LLUVIA: Revisar cortinas"; esCritico = false; }
+                // 3. LOG DE RECOMENDACIONES (BITÁCORA)
+                let msg = ""; let esCritico = false;
+                if(d.nh3_ppm > 25) { msg = "🚨 NH3 ALTO ("+d.nh3_ppm+"): Encender extractores inmediatamente."; esCritico = true; }
+                else if(d.temperatura > 33) { msg = "🔥 CALOR ("+d.temperatura+"°C): Activar nebulizadores."; esCritico = true; }
+                else if(d.lluvia == "SI") { msg = "🌧️ LLUVIA: Cerrar cortinas laterales."; esCritico = false; }
 
-                if(evt != "" && evt != lastEvent) {
-                    const log = document.getElementById('log');
-                    if(lastEvent == "") log.innerHTML = "";
-                    const item = document.createElement('div');
-                    item.className = "log-entry " + (esCritico ? "critico" : "");
-                    item.innerHTML = `<span>${evt}</span><span style="color:#64748b">${h}</span>`;
-                    log.prepend(item);
-                    lastEvent = evt;
+                if(msg !== "" && msg !== lastRecoMsg) {
+                    const recoLog = document.getElementById('reco-log');
+                    if(lastRecoMsg === "") recoLog.innerHTML = "";
+                    const div = document.createElement('div');
+                    div.className = "reco-item " + (esCritico ? "reco-critica" : "reco-aviso");
+                    div.innerHTML = `<span>${msg}</span><span style="font-size:0.7rem; color:#94a3b8;">${h}</span>`;
+                    recoLog.prepend(div);
+                    if(recoLog.children.length > 5) recoLog.lastChild.remove();
+                    lastRecoMsg = msg;
                 }
 
-                // 4. HISTORIAL DE LECTURAS (TABLA)
+                // 4. TABLA DE HISTORIAL TÉCNICO
                 dataHistory.unshift({time: h, temp: d.temperatura, hum: d.humedad, nh3: d.nh3_ppm, rain: d.lluvia});
                 if(dataHistory.length > 10) dataHistory.pop();
                 let tableHtml = "";
