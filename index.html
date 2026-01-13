@@ -3,97 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud Monitor</title>
+    <title>Capellán Cloud - Gauges</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     
     <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; text-align: center; }
-        .header { margin-bottom: 30px; border-bottom: 2px solid #334155; padding-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; max-width: 800px; margin: auto; }
-        .card { background: #1e293b; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; }
-        .card.alert { border-top-color: #ef4444; }
-        .label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-        .value { font-size: 2.2rem; font-weight: bold; display: block; margin-top: 5px; }
-        .unit { font-size: 1rem; color: #64748b; }
-        .status { margin-top: 20px; font-size: 0.9rem; color: #22c55e; }
-        .status.loading { color: #fbbf24; }
-        #reco { background: #1e293b; margin: 20px auto; padding: 15px; max-width: 800px; border-radius: 10px; border-left: 5px solid #3b82f6; text-align: left; }
+        body { background: #0f172a; color: #f1f5f9; font-family: sans-serif; padding: 15px; text-align: center; margin: 0; }
+        .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin: 20px auto; max-width: 900px; background: #1e293b; padding: 20px; border-radius: 20px; }
+        .gauge-box { background: #334155; padding: 10px; border-radius: 15px; }
+        .status { color: #22c55e; font-size: 0.8rem; margin-bottom: 10px; }
+        .rain-card { background: #1e293b; padding: 15px; border-radius: 12px; max-width: 200px; margin: 10px auto; border-top: 4px solid #3b82f6; }
+        
+        /* Historiales */
+        .section-title { text-align: left; max-width: 800px; margin: 20px auto 10px; color: #94a3b8; font-size: 0.9rem; font-weight: bold; border-left: 4px solid #3b82f6; padding-left: 10px; }
+        .log-container { background: #1e293b; border-radius: 10px; max-width: 800px; margin: 0 auto 20px; border: 1px solid #334155; overflow: hidden; }
+        .log-entry { padding: 10px 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; font-size: 0.85em; text-align: left; }
+        .critical { border-left: 5px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+        table { width: 100%; max-width: 800px; margin: 0 auto; background: #1e293b; border-radius: 10px; font-size: 0.85rem; border-collapse: collapse; }
+        th { background: #334155; color: #94a3b8; padding: 10px; }
+        td { padding: 8px; border-bottom: 1px solid #334155; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <h1>MONITOR CAPELLÁN 🛰️</h1>
-        <div id="connection-status" class="status loading">🟡 Conectando con la nube...</div>
+    <h2 style="margin: 10px 0;">🛰️ CAPELLÁN CLOUD GAUGES</h2>
+    <div id="st" class="status">Cargando instrumentos...</div>
+    
+    <div class="gauges-container">
+        <div id="chart_temp" class="gauge-box"></div>
+        <div id="chart_hum" class="gauge-box"></div>
+        <div id="chart_nh3" class="gauge-box"></div>
     </div>
 
-    <div class="grid">
-        <div class="card">
-            <span class="label">Temperatura</span>
-            <span class="value" id="temp">--</span>
-            <span class="unit">°C</span>
-        </div>
-        <div class="card">
-            <span class="label">Humedad</span>
-            <span class="value" id="hum">--</span>
-            <span class="unit">%</span>
-        </div>
-        <div class="card" id="card-nh3">
-            <span class="label">Amoníaco (NH3)</span>
-            <span class="value" id="nh3">--</span>
-            <span class="unit">PPM</span>
-        </div>
-        <div class="card">
-            <span class="label">Lluvia</span>
-            <span class="value" id="rain">--</span>
-        </div>
-    </div>
+    <div class="rain-card">LLUVIA: <strong id="l">--</strong></div>
 
-    <div id="reco">
-        <strong>💡 Recomendación:</strong> <span id="reco-text">Esperando datos...</span>
-    </div>
+    <div class="section-title">⚠️ Recomendaciones</div>
+    <div class="log-container" id="reco-log"><div style="padding:15px">Esperando datos...</div></div>
+
+    <div class="section-title">📜 Historial</div>
+    <table>
+        <thead><tr><th>Hora</th><th>T</th><th>H</th><th>NH3</th><th>Lluvia</th></tr></thead>
+        <tbody id="data-hist"></tbody>
+    </table>
 
     <script>
-        // CONFIGURACIÓN DE TU FIREBASE
-        const firebaseConfig = {
-            databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com"
-        };
-        
-        // Inicializar Firebase
+        // FIREBASE CONFIG
+        const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
 
-        // Leer datos en tiempo real de la ruta "/actual"
-        db.ref('/actual').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                document.getElementById('temp').innerText = data.T;
-                document.getElementById('hum').innerText = data.H;
-                document.getElementById('nh3').innerText = data.N;
-                document.getElementById('rain').innerText = data.L;
-                
-                document.getElementById('connection-status').innerText = "🟢 Nube Sincronizada: " + new Date().toLocaleTimeString();
-                document.getElementById('connection-status').className = "status";
+        // GOOGLE GAUGES CONFIG
+        google.charts.load('current', {'packages':['gauge']});
+        google.charts.setOnLoadCallback(initCharts);
 
-                // Lógica de recomendaciones
-                let reco = "Condiciones estables en el galpón.";
-                let cardNh3 = document.getElementById('card-nh3');
-                
-                if(data.N > 25) {
-                    reco = "⚠️ NIVEL CRÍTICO DE AMONÍACO. Activar ventilación máxima de inmediato.";
-                    cardNh3.style.borderTopColor = "#ef4444";
-                } else if(data.T > 33) {
-                    reco = "🌡️ CALOR EXCESIVO. Verificar sistema de nebulización.";
-                    cardNh3.style.borderTopColor = "#3b82f6";
-                } else if(data.L === "SI") {
-                    reco = "🌧️ LLUVIA DETECTADA. Asegurar cortinas laterales.";
-                } else {
-                    cardNh3.style.borderTopColor = "#3b82f6";
+        let chartT, chartH, chartN, dataT, dataH, dataN, optionsT, optionsH, optionsN;
+        let lastReco = ""; let logsData = [];
+
+        function initCharts() {
+            dataT = google.visualization.arrayToDataTable([['Label', 'Value'],['Temp', 0]]);
+            optionsT = { width: 160, height: 160, redFrom: 33, redTo: 50, yellowFrom: 28, yellowTo: 33, minorTicks: 5, max: 50 };
+            chartT = new google.visualization.Gauge(document.getElementById('chart_temp'));
+
+            dataH = google.visualization.arrayToDataTable([['Label', 'Value'],['Hum %', 0]]);
+            optionsH = { width: 160, height: 160, yellowFrom: 70, yellowTo: 85, redFrom: 85, redTo: 100, minorTicks: 5 };
+            chartH = new google.visualization.Gauge(document.getElementById('chart_hum'));
+
+            dataN = google.visualization.arrayToDataTable([['Label', 'Value'],['NH3', 0]]);
+            optionsN = { width: 160, height: 160, redFrom: 25, redTo: 100, yellowFrom: 15, yellowTo: 25, minorTicks: 5, max: 100 };
+            chartN = new google.visualization.Gauge(document.getElementById('chart_nh3'));
+
+            updateFromFirebase();
+        }
+
+        function updateFromFirebase() {
+            firebase.database().ref('/actual').on('value', (s) => {
+                const d = s.val();
+                if(d && chartT) {
+                    const hora = new Date().toLocaleTimeString();
+                    
+                    // Actualizar Gauges
+                    dataT.setValue(0, 1, d.T); chartT.draw(dataT, optionsT);
+                    dataH.setValue(0, 1, d.H); chartH.draw(dataH, optionsH);
+                    dataN.setValue(0, 1, d.N); chartN.draw(dataN, optionsN);
+                    document.getElementById('l').innerText = d.L;
+                    document.getElementById('st').innerText = "VIVO - " + hora;
+
+                    // Historial de Datos
+                    logsData.unshift({h:hora, t:d.T, hu:d.H, n:d.N, l:d.L});
+                    if(logsData.length > 8) logsData.pop();
+                    let htm = "";
+                    logsData.forEach(e => { htm += `<tr><td>${e.h}</td><td>${e.t}°</td><td>${e.hu}%</td><td>${e.n}</td><td>${e.l}</td></tr>`; });
+                    document.getElementById('data-hist').innerHTML = htm;
+
+                    // Recomendaciones
+                    let msg = "";
+                    if(d.N > 25) msg = "CRÍTICO: NH3 alto ("+d.N+"). Ventilar.";
+                    else if(d.T > 33) msg = "ESTRÉS TÉRMICO: "+d.T+"°C. Nebulizadores.";
+                    else if(d.L == "SI") msg = "AVISO: Lluvia. Cerrar cortinas.";
+
+                    if(msg !== "" && msg !== lastReco) {
+                        const container = document.getElementById('reco-log');
+                        if(lastReco === "") container.innerHTML = "";
+                        const div = document.createElement('div');
+                        div.className = "log-entry critical";
+                        div.innerHTML = `<span>${msg}</span><span style="color:#64748b">${hora}</span>`;
+                        container.prepend(div);
+                        lastReco = msg;
+                    }
                 }
-                document.getElementById('reco-text').innerText = reco;
-            }
-        });
+            });
+        }
     </script>
 </body>
 </html>
