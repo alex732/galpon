@@ -47,11 +47,12 @@
     </table>
 
     <script>
-        // FIREBASE CONFIG
-        const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
+        // CONFIGURACIÓN EXACTA DE TU FIREBASE
+        const firebaseConfig = { 
+            databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" 
+        };
         firebase.initializeApp(firebaseConfig);
 
-        // GOOGLE GAUGES CONFIG
         google.charts.load('current', {'packages':['gauge']});
         google.charts.setOnLoadCallback(initCharts);
 
@@ -75,15 +76,17 @@
         }
 
         function updateFromFirebase() {
-            firebase.database().ref('/actual').on('value', (s) => {
+            // AQUÍ ESTABA EL ERROR: Cambiamos a '/galpon/actual'
+            firebase.database().ref('/galpon/actual').on('value', (s) => {
                 const d = s.val();
                 if(d && chartT) {
                     const hora = new Date().toLocaleTimeString();
                     
-                    // Actualizar Gauges
+                    // Actualizar los Gauges con tus datos (T, H, N, L)
                     dataT.setValue(0, 1, d.T); chartT.draw(dataT, optionsT);
                     dataH.setValue(0, 1, d.H); chartH.draw(dataH, optionsH);
                     dataN.setValue(0, 1, d.N); chartN.draw(dataN, optionsN);
+                    
                     document.getElementById('l').innerText = d.L;
                     document.getElementById('st').innerText = "VIVO - " + hora;
 
@@ -91,13 +94,15 @@
                     logsData.unshift({h:hora, t:d.T, hu:d.H, n:d.N, l:d.L});
                     if(logsData.length > 8) logsData.pop();
                     let htm = "";
-                    logsData.forEach(e => { htm += `<tr><td>${e.h}</td><td>${e.t}°</td><td>${e.hu}%</td><td>${e.n}</td><td>${e.l}</td></tr>`; });
+                    logsData.forEach(e => { 
+                        htm += `<tr><td>${e.h}</td><td>${e.t}°</td><td>${e.hu}%</td><td>${e.n}</td><td>${e.l}</td></tr>`; 
+                    });
                     document.getElementById('data-hist').innerHTML = htm;
 
-                    // Recomendaciones
+                    // Lógica de Recomendaciones
                     let msg = "";
-                    if(d.N > 25) msg = "CRÍTICO: NH3 alto ("+d.N+"). Ventilar.";
-                    else if(d.T > 33) msg = "ESTRÉS TÉRMICO: "+d.T+"°C. Nebulizadores.";
+                    if(d.N > 25) msg = "CRÍTICO: Amoníaco alto ("+d.N+"). Ventilar.";
+                    else if(d.T > 33) msg = "CALOR: "+d.T+"°C. Activar extractores.";
                     else if(d.L == "SI") msg = "AVISO: Lluvia. Cerrar cortinas.";
 
                     if(msg !== "" && msg !== lastReco) {
