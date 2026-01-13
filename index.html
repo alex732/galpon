@@ -3,35 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Enterprise Cloud</title>
+    <title>Capellán Cloud Pro</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: sans-serif; text-align: center; padding: 10px; transition: 0.5s; }
-        .header { background: #1e293b; padding: 15px; border-radius: 15px; margin-bottom: 20px; }
-        .update-box { background: #334155; display: inline-block; padding: 8px 15px; border-radius: 50px; font-size: 0.8rem; color: #22c55e; border: 1px solid #22c55e; }
+        body { background: #0f172a; color: #f1f5f9; font-family: sans-serif; text-align: center; padding: 10px; margin: 0; }
+        .header { background: #1e293b; padding: 15px; border-radius: 0 0 20px 20px; margin-bottom: 20px; }
+        .update-tag { background: #334155; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; color: #22c55e; border: 1px solid #22c55e; }
         .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
-        .gauge-card { background: #1e293b; padding: 10px; border-radius: 15px; }
-        .log-section { background: #1e293b; border-radius: 15px; max-width: 700px; margin: 20px auto; overflow: hidden; text-align: left; }
-        .log-item { padding: 10px 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; font-size: 0.85rem; }
-        .alert { border-left: 5px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .gauge-card { background: #1e293b; padding: 10px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        
+        /* INDICADOR DE LLUVIA MEJORADO */
+        .rain-status { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 300px; margin: 20px auto; border: 2px solid #334155; transition: 0.3s; }
+        .is-raining { background: #1d4ed8 !important; border-color: #60a5fa !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        
+        .log-container { background: #1e293b; border-radius: 15px; max-width: 600px; margin: 20px auto; overflow: hidden; text-align: left; }
+        .log-entry { padding: 10px 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; font-size: 0.85rem; }
+        .critico { border-left: 5px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🛰️ CAPELLÁN CLOUD</h1>
-        <div id="status" class="update-box">ESPERANDO DATOS...</div>
+        <h2 style="margin:0;">🛰️ CAPELLÁN CLOUD</h2>
+        <span id="update-box" class="update-tag">ESPERANDO SEÑAL...</span>
     </div>
-    
+
     <div class="gauges-container">
         <div class="gauge-card"><div id="chart_t"></div></div>
         <div class="gauge-card"><div id="chart_h"></div></div>
         <div class="gauge-card"><div id="chart_n"></div></div>
     </div>
 
-    <h3 style="text-align:left; max-width:700px; margin:20px auto 10px;">⚠️ HISTORIAL DE ALERTAS</h3>
-    <div id="log" class="log-section"><div style="padding:15px; color:#64748b;">Buscando eventos...</div></div>
+    <div id="rain-card" class="rain-status">
+        <div style="font-size: 0.8rem; color: #94a3b8;">ESTADO DEL CLIMA</div>
+        <div id="rain-text" style="font-size: 1.5rem; font-weight: bold; margin-top: 5px;">SIN LLUVIA</div>
+    </div>
+
+    <h3 style="text-align:left; max-width:600px; margin: 20px auto 10px;">🕒 LOG DE EVENTOS</h3>
+    <div id="log" class="log-container"><div style="padding:15px">Iniciando bitácora...</div></div>
 
 <script>
     const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
@@ -40,53 +50,59 @@
 
     let chartT, chartH, chartN, dataT, dataH, dataN;
     let opt = { width: 150, height: 150, minorTicks: 5 };
-    let lastMsg = "";
+    let lastEvent = "";
 
     google.charts.load('current', {'packages':['gauge']});
     google.charts.setOnLoadCallback(() => {
         dataT = google.visualization.arrayToDataTable([['Label', 'Value'],['Temp', 0]]);
         dataH = google.visualization.arrayToDataTable([['Label', 'Value'],['Hum %', 0]]);
         dataN = google.visualization.arrayToDataTable([['Label', 'Value'],['NH3', 0]]);
+        
         chartT = new google.visualization.Gauge(document.getElementById('chart_t'));
         chartH = new google.visualization.Gauge(document.getElementById('chart_h'));
         chartN = new google.visualization.Gauge(document.getElementById('chart_n'));
-        
-        // Dibujo inicial
-        chartT.draw(dataT, {...opt, redFrom: 33, redTo: 50, yellowFrom: 28, yellowTo: 33, max: 50});
-        chartH.draw(dataH, {...opt, redFrom: 85, redTo: 100, yellowFrom: 70, yellowTo: 85});
-        chartN.draw(dataN, {...opt, redFrom: 25, redTo: 100, yellowFrom: 15, yellowTo: 25, max: 100});
 
-        conectar();
+        escucharFirebase();
     });
 
-    function conectar() {
-        db.ref('galpon/actual').on('value', (snap) => {
-            const d = snap.val();
-            if (d) {
-                const hora = new Date().toLocaleTimeString();
+    function escucharFirebase() {
+        db.ref('galpon/actual').on('value', (s) => {
+            const d = s.val();
+            if(d) {
+                const h = new Date().toLocaleTimeString();
                 
-                // Actualizar Relojes con nombres largos
+                // 1. Actualizar Relojes
                 dataT.setValue(0, 1, parseFloat(d.temperatura)); chartT.draw(dataT, {...opt, redFrom: 33, redTo: 50, yellowFrom: 28, yellowTo: 33, max: 50});
                 dataH.setValue(0, 1, parseFloat(d.humedad)); chartH.draw(dataH, {...opt, redFrom: 85, redTo: 100, yellowFrom: 70, yellowTo: 85});
                 dataN.setValue(0, 1, parseFloat(d.nh3_ppm)); chartN.draw(dataN, {...opt, redFrom: 25, redTo: 100, yellowFrom: 15, yellowTo: 25, max: 100});
 
-                document.getElementById('status').innerText = "VIVO - " + hora;
-                
-                // Lógica de Alertas
-                let msg = ""; let critico = false;
-                if(d.nh3_ppm > 25) { msg = "NH3 ALTO: Ventilar galpón."; critico = true; }
-                else if(d.temperatura > 33) { msg = "CALOR EXTREMO: Foggers ON."; critico = true; }
-                else if(d.lluvia == "SI") { msg = "LLUVIA: Cerrar cortinas."; critico = false; }
+                // 2. Indicador de Lluvia
+                const rainCard = document.getElementById('rain-card');
+                const rainText = document.getElementById('rain-text');
+                if(d.lluvia == "SI") {
+                    rainCard.className = "rain-status is-raining";
+                    rainText.innerText = "🌧️ LLOVIENDO";
+                } else {
+                    rainCard.className = "rain-status";
+                    rainText.innerText = "☀️ DESPEJADO";
+                }
 
-                if(msg != "" && msg != lastMsg) {
+                // 3. Status y Log
+                document.getElementById('update-box').innerText = "VIVO: " + h;
+                
+                let evt = ""; let esCritico = false;
+                if(d.nh3_ppm > 25) { evt = "NH3 ALTO: " + d.nh3_ppm + " ppm"; esCritico = true; }
+                else if(d.temperatura > 33) { evt = "CALOR: " + d.temperatura + "°C"; esCritico = true; }
+                else if(d.lluvia == "SI") { evt = "Lluvia detectada"; esCritico = false; }
+
+                if(evt != "" && evt != lastEvent) {
                     const log = document.getElementById('log');
-                    if(lastMsg == "") log.innerHTML = "";
+                    if(lastEvent == "") log.innerHTML = "";
                     const item = document.createElement('div');
-                    item.className = "log-item " + (critico ? "alert" : "");
-                    item.innerHTML = `<span>${msg}</span><span style="color:#64748b">${hora}</span>`;
+                    item.className = "log-entry " + (esCritico ? "critico" : "");
+                    item.innerHTML = `<span>${evt}</span><span style="color:#64748b">${h}</span>`;
                     log.prepend(item);
-                    lastMsg = msg;
-                    document.body.style.background = critico ? "#450a0a" : "#0f172a";
+                    lastEvent = evt;
                 }
             }
         });
