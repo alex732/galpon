@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud Pro - Historial Persistente</title>
+    <title>Capellán Cloud Pro - Sincronización Total</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -45,10 +45,10 @@
 
     <div id="r-card" class="rain-card"><span id="r-icon">☀️</span> <span id="r-text">DESPEJADO</span></div>
 
-    <div class="section-label">⚠️ BITÁCORA GUARDADA (ALERTAS)</div>
+    <div class="section-label">⚠️ BITÁCORA DE ALERTAS (GUARDADA)</div>
     <div id="reco-log" class="box"></div>
 
-    <div class="section-label">📜 HISTORIAL TÉCNICO GUARDADO</div>
+    <div class="section-label">📜 ÚLTIMAS 10 MEDICIONES (GUARDADAS)</div>
     <div class="box">
         <table>
             <thead><tr><th>Hora</th><th>Temp</th><th>Hum</th><th>NH3</th><th>Lluvia</th></tr></thead>
@@ -65,22 +65,64 @@
     let lastUpdate = Date.now();
     let lastMsg = "";
 
-    // 1. CARGAR TODO EL HISTORIAL GUARDADO AL INICIAR
+    // FUNCIÓN PARA PROCESAR DATOS (Centralizada)
+    function actualizarInterfaz(d) {
+        if(!d) return;
+        lastUpdate = Date.now();
+        const h = new Date().toLocaleTimeString();
+
+        document.getElementById('dot').className = "dot online";
+        document.getElementById('st-text').innerText = "ONLINE - " + h;
+        document.getElementById('st-text').style.color = "#22c55e";
+
+        dataT.setValue(0, 1, d.temperatura); chartT.draw(dataT, {width:160, height:160, redFrom:33, redTo:50, yellowFrom:29, yellowTo:33, max:50});
+        dataH.setValue(0, 1, d.humedad); chartH.draw(dataH, {width:160, height:160, redFrom:80, redTo:100, yellowFrom:70, yellowTo:80});
+        dataN.setValue(0, 1, d.nh3_ppm); chartN.draw(dataN, {width:160, height:160, redFrom:20, redTo:100, yellowFrom:15, yellowTo:20, max:100});
+
+        let msg = ""; let tipo = "";
+        if(d.nh3_ppm > 20) { msg = "🚨 CRÍTICO: Amoníaco alto. Ventilar."; tipo = "reco-critica"; }
+        else if(d.temperatura > 33) { msg = "🔥 PELIGRO: Calor extremo ("+d.temperatura+"°C)."; tipo = "reco-critica"; }
+        else if(d.humedad > 75) { msg = "💧 AVISO: Humedad alta ("+d.humedad+"%)."; tipo = "reco-aviso"; }
+        else if(d.lluvia == "SI") { msg = "🌧️ EVENTO: Lluvia detectada."; tipo = "reco-aviso"; }
+
+        if(msg != "" && msg != lastMsg) {
+            const log = document.getElementById('reco-log');
+            if(log.innerText.includes("Esperando")) log.innerHTML = "";
+            const div = `<div class="reco-item ${tipo}"><span>${msg}</span><span style="font-size:0.7rem; color:#94a3b8">${h}</span></div>`;
+            log.insertAdjacentHTML('afterbegin', div);
+            if(log.children.length > 8) log.lastChild.remove();
+            lastMsg = msg;
+            localStorage.setItem('capellan_logs', log.innerHTML);
+        }
+
+        const rc = document.getElementById('r-card');
+        if(d.lluvia == "SI") { rc.className="rain-card is-raining"; document.getElementById('r-text').innerText="LLOVIENDO"; document.getElementById('r-icon').innerText="🌧️"; }
+        else { rc.className="rain-card"; document.getElementById('r-text').innerText="DESPEJADO"; document.getElementById('r-icon').innerText="☀️"; }
+
+        let table = document.getElementById('h-table');
+        let row = `<tr><td>${h}</td><td>${d.temperatura.toFixed(1)} °C</td><td>${d.humedad}%</td><td>${d.nh3_ppm.toFixed(1)}</td><td>${d.lluvia}</td></tr>`;
+        table.insertAdjacentHTML('afterbegin', row);
+        if(table.children.length > 10) table.lastChild.remove();
+        localStorage.setItem('capellan_table', table.innerHTML);
+    }
+
+    // CARGAR AL INICIAR
     window.onload = () => {
         const savedLogs = localStorage.getItem('capellan_logs');
         const savedTable = localStorage.getItem('capellan_table');
-        
         if (savedLogs) document.getElementById('reco-log').innerHTML = savedLogs;
-        else document.getElementById('reco-log').innerHTML = '<div style="padding:20px; color:#64748b">Sin alertas registradas.</div>';
-        
         if (savedTable) document.getElementById('h-table').innerHTML = savedTable;
     };
 
-    // 2. DETECTAR FOCUS
+    // SINCRONIZACIÓN AL GANAR FOCUS (MEJORADA)
     window.addEventListener('focus', () => {
-        db.ref('galpon/actual').once('value', (s) => { if(s.val()) lastUpdate = Date.now(); });
+        console.log("Foco ganado: Sincronizando con Firebase...");
+        db.ref('galpon/actual').once('value').then((s) => {
+            actualizarInterfaz(s.val());
+        });
     });
 
+    // WATCHDOG DE CONEXIÓN
     setInterval(() => {
         if ((Date.now() - lastUpdate) > 35000) {
             document.getElementById('dot').className = "dot offline";
@@ -94,54 +136,14 @@
         dataT = google.visualization.arrayToDataTable([['Label','Value'],['Temp °C',0]]);
         dataH = google.visualization.arrayToDataTable([['Label','Value'],['Hum %',0]]);
         dataN = google.visualization.arrayToDataTable([['Label','Value'],['NH3',0]]);
-
-        const options = { width: 160, height: 160, minorTicks: 5 };
+        
         chartT = new google.visualization.Gauge(document.getElementById('chart_t'));
         chartH = new google.visualization.Gauge(document.getElementById('chart_h'));
         chartN = new google.visualization.Gauge(document.getElementById('chart_n'));
         
+        // ESCUCHA CONSTANTE
         db.ref('galpon/actual').on('value', (s) => {
-            const d = s.val(); if(!d) return;
-            lastUpdate = Date.now();
-            const h = new Date().toLocaleTimeString();
-
-            document.getElementById('dot').className = "dot online";
-            document.getElementById('st-text').innerText = "ONLINE - " + h;
-            document.getElementById('st-text').style.color = "#22c55e";
-
-            dataT.setValue(0, 1, d.temperatura); chartT.draw(dataT, {...options, redFrom:33, redTo:50, yellowFrom:29, yellowTo:33, max:50});
-            dataH.setValue(0, 1, d.humedad); chartH.draw(dataH, {...options, redFrom:80, redTo:100, yellowFrom:70, yellowTo:80});
-            dataN.setValue(0, 1, d.nh3_ppm); chartN.draw(dataN, {...options, redFrom:20, redTo:100, yellowFrom:15, yellowTo:20, max:100});
-
-            // LÓGICA DE ALERTAS
-            let msg = ""; let tipo = "";
-            if(d.nh3_ppm > 20) { msg = "🚨 CRÍTICO: Amoníaco alto. Ventilar."; tipo = "reco-critica"; }
-            else if(d.temperatura > 33) { msg = "🔥 PELIGRO: Calor extremo ("+d.temperatura+"°C)."; tipo = "reco-critica"; }
-            else if(d.humedad > 75) { msg = "💧 AVISO: Humedad alta ("+d.humedad+"%)."; tipo = "reco-aviso"; }
-            else if(d.lluvia == "SI") { msg = "🌧️ EVENTO: Lluvia detectada."; tipo = "reco-aviso"; }
-
-            if(msg != "" && msg != lastMsg) {
-                const log = document.getElementById('reco-log');
-                if(lastMsg == "") log.innerHTML = "";
-                const div = `<div class="reco-item ${tipo}"><span>${msg}</span><span style="font-size:0.7rem; color:#94a3b8">${h}</span></div>`;
-                log.insertAdjacentHTML('afterbegin', div);
-                if(log.children.length > 8) log.lastChild.remove();
-                lastMsg = msg;
-                localStorage.setItem('capellan_logs', log.innerHTML);
-            }
-
-            // LÓGICA DE HISTORIAL Y PERSISTENCIA
-            const rc = document.getElementById('r-card');
-            if(d.lluvia == "SI") { rc.className="rain-card is-raining"; document.getElementById('r-text').innerText="LLOVIENDO"; document.getElementById('r-icon').innerText="🌧️"; }
-            else { rc.className="rain-card"; document.getElementById('r-text').innerText="DESPEJADO"; document.getElementById('r-icon').innerText="☀️"; }
-
-            let table = document.getElementById('h-table');
-            let row = `<tr><td>${h}</td><td>${d.temperatura.toFixed(1)} °C</td><td>${d.humedad}%</td><td>${d.nh3_ppm.toFixed(1)}</td><td>${d.lluvia}</td></tr>`;
-            table.insertAdjacentHTML('afterbegin', row);
-            if(table.children.length > 10) table.lastChild.remove();
-            
-            // GUARDAR TABLA EN MEMORIA
-            localStorage.setItem('capellan_table', table.innerHTML);
+            actualizarInterfaz(s.val());
         });
     });
 </script>
