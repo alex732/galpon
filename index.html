@@ -3,33 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud Pro</title>
+    <title>Capellán Cloud Pro - Control Avícola RD</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
-        body { background: #0f172a; color: #f1f5f9; font-family: sans-serif; margin: 0; padding: 10px; text-align: center; }
-        .header { background: #1e293b; padding: 15px; border-radius: 0 0 20px 20px; border-bottom: 3px solid #3b82f6; margin-bottom: 10px; }
-        .status-bar { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; }
-        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
-        .online { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
-        .offline { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
-        .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-        .gauge-card { background: #1e293b; padding: 10px; border-radius: 15px; }
-        .rain-card { background: #1e293b; padding: 15px; border-radius: 15px; max-width: 250px; margin: 15px auto; border: 2px solid #334155; }
-        .is-raining { background: #1d4ed8 !important; border-color: #60a5fa !important; }
-        .box { background: #1e293b; border-radius: 15px; max-width: 750px; margin: 0 auto 15px; overflow: hidden; border: 1px solid #334155; text-align: left; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        th { background: #334155; padding: 8px; color: #94a3b8; }
-        td { padding: 8px; border-bottom: 1px solid #334155; text-align: center; }
+        body { background: #0f172a; color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 10px; text-align: center; }
+        .header { background: #1e293b; padding: 15px; border-radius: 0 0 20px 20px; border-bottom: 4px solid #3b82f6; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        /* SEMÁFORO DE CONEXIÓN */
+        .status-bar { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 20px; width: fit-content; margin: 10px auto; padding: 5px 15px; }
+        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; }
+        .online { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
+        .offline { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+        
+        .gauges-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+        .gauge-card { background: #1e293b; padding: 15px; border-radius: 20px; border: 1px solid #334155; transition: 0.3s; }
+        .gauge-card:hover { border-color: #3b82f6; }
+
+        .rain-card { background: #1e293b; padding: 20px; border-radius: 20px; max-width: 300px; margin: 20px auto; border: 2px solid #334155; font-size: 1.2rem; }
+        .is-raining { background: #1d4ed8 !important; border-color: #60a5fa !important; box-shadow: 0 0 20px rgba(29, 78, 216, 0.6); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+
+        .box { background: #1e293b; border-radius: 15px; max-width: 800px; margin: 0 auto 20px; overflow: hidden; border: 1px solid #334155; text-align: left; }
+        .reco-item { padding: 15px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .reco-critica { border-left: 6px solid #ef4444; background: rgba(239, 68, 68, 0.1); color: #fecaca; }
+        .reco-aviso { border-left: 6px solid #eab308; background: rgba(234, 179, 8, 0.1); color: #fef08a; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #334155; padding: 12px; color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
+        .section-label { text-align: left; max-width: 800px; margin: 15px auto 8px; color: #3b82f6; font-weight: bold; font-size: 0.9rem; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2 style="margin:0;">🛰️ CAPELLÁN CLOUD PRO</h2>
+        <h1 style="margin:0; font-size: 1.5rem;">🛰️ CAPELLÁN CLOUD PRO</h1>
         <div class="status-bar">
             <span id="dot" class="dot offline"></span>
-            <span id="st-text" style="font-size:0.8rem; color:#ef4444">OFFLINE</span>
+            <span id="st-text" style="font-weight: bold; color:#ef4444">OFFLINE</span>
         </div>
     </div>
 
@@ -39,12 +51,14 @@
         <div class="gauge-card"><div id="chart_n"></div></div>
     </div>
 
-    <div id="r-card" class="rain-card"><div id="r-text" style="font-weight:bold">--</div></div>
+    <div id="r-card" class="rain-card">
+        <span id="r-icon">☀️</span> <span id="r-text">DESPEJADO</span>
+    </div>
 
-    <h4 style="text-align:left; max-width:750px; margin:10px auto; color:#94a3b8">⚠️ RECOMENDACIONES</h4>
-    <div id="reco-log" class="box"></div>
+    <div class="section-label">⚠️ ALERTAS DE MANEJO TÉCNICO (RD)</div>
+    <div id="reco-log" class="box"><div style="padding:20px; color:#64748b">Esperando sincronización de sensores...</div></div>
 
-    <h4 style="text-align:left; max-width:750px; margin:10px auto; color:#94a3b8">📜 HISTORIAL</h4>
+    <div class="section-label">📜 BITÁCORA DE DATOS (ÚLTIMAS 10 LECTURAS)</div>
     <div class="box">
         <table>
             <thead><tr><th>Hora</th><th>Temp</th><th>Hum</th><th>NH3</th><th>Lluvia</th></tr></thead>
@@ -53,45 +67,88 @@
     </div>
 
 <script>
-    firebase.initializeApp({databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com"});
+    // CONFIGURACIÓN FIREBASE
+    const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    
     let chartT, chartH, chartN, dataT, dataH, dataN;
     let lastUpdate = Date.now();
+    let lastMsg = "";
 
+    // VERIFICADOR DE CONEXIÓN (WATCHDOG)
     setInterval(() => {
-        if ((Date.now() - lastUpdate) > 30000) {
+        if ((Date.now() - lastUpdate) > 35000) { // 35 segundos sin datos = Caída
             document.getElementById('dot').className = "dot offline";
-            document.getElementById('st-text').innerText = "OFFLINE";
+            document.getElementById('st-text').innerText = "OFFLINE - REVISAR GALPÓN";
             document.getElementById('st-text').style.color = "#ef4444";
         }
     }, 5000);
 
     google.charts.load('current', {'packages':['gauge']});
     google.charts.setOnLoadCallback(() => {
+        // Inicializar Datos
         dataT = google.visualization.arrayToDataTable([['Label','Value'],['Temp',0]]);
         dataH = google.visualization.arrayToDataTable([['Label','Value'],['Hum %',0]]);
         dataN = google.visualization.arrayToDataTable([['Label','Value'],['NH3',0]]);
+
+        const options = { width: 160, height: 160, minorTicks: 5 };
+
         chartT = new google.visualization.Gauge(document.getElementById('chart_t'));
         chartH = new google.visualization.Gauge(document.getElementById('chart_h'));
         chartN = new google.visualization.Gauge(document.getElementById('chart_n'));
         
+        // ESCUCHA EN TIEMPO REAL
         db.ref('galpon/actual').on('value', (s) => {
             const d = s.val(); if(!d) return;
             lastUpdate = Date.now();
             const h = new Date().toLocaleTimeString();
+
+            // Actualizar Interfaz Online
             document.getElementById('dot').className = "dot online";
-            document.getElementById('st-text').innerText = "ONLINE - " + h;
+            document.getElementById('st-text').innerText = "SISTEMA ONLINE - " + h;
             document.getElementById('st-text').style.color = "#22c55e";
 
-            dataT.setValue(0, 1, d.temperatura); chartT.draw(dataT, {width:150, height:150, redFrom:33, redTo:50, yellowFrom:28, yellowTo:33, max:50});
-            dataH.setValue(0, 1, d.humedad); chartH.draw(dataH, {width:150, height:150, redFrom:85, redTo:100, yellowFrom:70, yellowTo:85});
-            dataN.setValue(0, 1, d.nh3_ppm); chartN.draw(dataN, {width:150, height:150, redFrom:25, redTo:100, yellowFrom:15, yellowTo:25, max:100});
+            // Dibujar Relojes con Rangos de República Dominicana
+            dataT.setValue(0, 1, d.temperatura); 
+            chartT.draw(dataT, {...options, redFrom:33, redTo:50, yellowFrom:29, yellowTo:33, max:50});
 
+            dataH.setValue(0, 1, d.humedad); 
+            chartH.draw(dataH, {...options, redFrom:80, redTo:100, yellowFrom:70, yellowTo:80});
+
+            dataN.setValue(0, 1, d.nh3_ppm); 
+            chartN.draw(dataN, {...options, redFrom:20, redTo:100, yellowFrom:15, yellowTo:20, max:100});
+
+            // Lógica de Alertas Dinámicas
+            let msg = ""; let tipo = "";
+            if(d.nh3_ppm > 20) { msg = "🚨 CRÍTICO: Amoníaco alto (>20ppm). Riesgo respiratorio. Ventilar de inmediato."; tipo = "reco-critica"; }
+            else if(d.temperatura > 33) { msg = "🔥 PELIGRO: Estrés calórico extremo. Activar ventiladores/nebulizadores."; tipo = "reco-critica"; }
+            else if(d.humedad > 75) { msg = "💧 AVISO: Humedad > 75%. Vigilar apelmazamiento de cama y moho."; tipo = "reco-aviso"; }
+            else if(d.lluvia == "SI") { msg = "🌧️ EVENTO: Lluvia detectada. Cerrar cortinas para proteger la cama."; tipo = "reco-aviso"; }
+
+            if(msg != "" && msg != lastMsg) {
+                const log = document.getElementById('reco-log');
+                if(lastMsg == "") log.innerHTML = "";
+                const div = `<div class="reco-item ${tipo}"><span>${msg}</span><span style="font-size:0.7rem; color:#94a3b8">${h}</span></div>`;
+                log.insertAdjacentHTML('afterbegin', div);
+                if(log.children.length > 5) log.lastChild.remove();
+                lastMsg = msg;
+            }
+
+            // Estado de Lluvia
             const rc = document.getElementById('r-card');
-            if(d.lluvia == "SI") { rc.className="rain-card is-raining"; document.getElementById('r-text').innerText="🌧️ LLOVIENDO"; }
-            else { rc.className="rain-card"; document.getElementById('r-text').innerText="☀️ DESPEJADO"; }
+            if(d.lluvia == "SI") { 
+                rc.className="rain-card is-raining"; 
+                document.getElementById('r-text').innerText="LLOVIENDO";
+                document.getElementById('r-icon').innerText="🌧️";
+            } else { 
+                rc.className="rain-card"; 
+                document.getElementById('r-text').innerText="DESPEJADO";
+                document.getElementById('r-icon').innerText="☀️";
+            }
 
-            let row = `<tr><td>${h}</td><td>${d.temperatura}°</td><td>${d.humedad}%</td><td>${d.nh3_ppm}</td><td>${d.lluvia}</td></tr>`;
+            // Historial Técnico
+            let row = `<tr><td>${h}</td><td>${d.temperatura.toFixed(1)}°</td><td>${d.humedad}%</td><td>${d.nh3_ppm.toFixed(1)}</td><td>${d.lluvia}</td></tr>`;
             document.getElementById('h-table').insertAdjacentHTML('afterbegin', row);
             if(document.getElementById('h-table').children.length > 10) document.getElementById('h-table').lastChild.remove();
         });
