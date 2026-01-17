@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Dashboard Profesional</title>
+    <title>Capellán Cloud | Dashboard Final</title>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -29,17 +29,14 @@
             background: var(--card); border-radius: 20px;
             padding: 25px; border: 4px solid #334155;
             box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            transition: transform 0.3s ease;
         }
-        .card:hover { transform: translateY(-5px); }
         .val { font-size: 3.5rem; font-weight: bold; margin: 15px 0; }
         
-        /* Video Container */
         .cam-box {
             width: 100%; height: 350px; background: #000;
             border-radius: 15px; border: 3px solid var(--primary);
             display: flex; align-items: center; justify-content: center;
-            overflow: hidden; position: relative;
+            overflow: hidden;
         }
         #video-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
         
@@ -48,9 +45,6 @@
             padding: 18px; border-radius: 12px; cursor: pointer;
             font-weight: bold; width: 100%; margin-bottom: 15px; font-size: 1.1rem;
         }
-        .btn-main:hover { filter: brightness(1.2); }
-
-        .ptz-group { margin-top: 15px; }
         .ptz-btn {
             background: #334155; color: white; border: none;
             padding: 15px; border-radius: 10px; cursor: pointer;
@@ -63,66 +57,55 @@
 
 <div class="container">
     <h1 style="color: var(--primary); letter-spacing: 2px;">CAPELLÁN CLOUD 🚦</h1>
-    <p style="color: #64748b;">Monitoreo de Galpón en Tiempo Real</p>
 
     <div class="grid">
         <div id="card-nh3" class="card">
             <h3>AMONÍACO (NH₃)</h3>
             <canvas id="gauge-nh3" style="width: 100%; height: 160px;"></canvas>
             <div id="val-nh3" class="val">--</div>
-            <p id="label-nh3" style="font-weight: bold;">Cargando...</p>
+            <p id="label-nh3" style="font-weight: bold;">--</p>
         </div>
 
         <div id="card-temp" class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp" style="width: 100%; height: 160px;"></canvas>
             <div id="val-temp" class="val">--</div>
-            <p id="label-temp" style="font-weight: bold;">Cargando...</p>
+            <p id="label-temp" style="font-weight: bold;">--</p>
         </div>
 
         <div class="card" style="border-color: var(--primary);">
-            <button id="btn-stream" class="btn-main" onclick="conectarStream()">CONECTAR VIDEO PROXY</button>
+            <button id="btn-stream" class="btn-main" onclick="conectarStream()">CONECTAR VIA PROXY (192.168.2.208)</button>
             <div class="cam-box">
                 <img id="video-stream" src="">
-                <div id="status-text" style="color: #475569;">Esperando Servidor Java...</div>
+                <div id="status-text" style="color: #475569;">Servidor Java Offline</div>
             </div>
-            <div class="ptz-group">
-                <button class="ptz-btn" onclick="controlar('ptzMoveUp')">▲</button><br>
-                <button class="ptz-btn" onclick="controlar('ptzMoveLeft')">◄</button>
-                <button class="ptz-btn" onclick="controlar('ptzReset')">🏠</button>
-                <button class="ptz-btn" onclick="controlar('ptzMoveRight')">►</button><br>
-                <button class="ptz-btn" onclick="controlar('ptzMoveDown')">▼</button>
+            <div style="margin-top: 15px;">
+                <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
+                <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
+                <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
+                <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
+                <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    /* ================= CONFIGURACIÓN ================= */
-    // Reemplaza con la IP de la computadora donde corre tu Servidor Java
-    const PROXY_SERVER = "http://localhost:8080/stream-galpon"; 
-    // Para mover la cámara seguimos usando la IP directa (el Proxy Java también podría hacerlo)
-    const CAM_IP = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=alex&pwd=F7324088";
+    /* ================= DATOS DE RED ================= */
+    const JAVA_IP = "http://192.168.2.208:8080/stream-galpon";
+    const CAM_DIRECTA = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=alex&pwd=F7324088";
 
     /* ================= FIREBASE ================= */
-    const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
     const db = firebase.database();
 
     /* ================= GAUGES ================= */
-    const gOpts = {
-        angle: -0.2, lineWidth: 0.2,
-        pointer: { length: 0.6, color: "#fff" },
-        staticZones: [
-            {strokeColor: "#22c55e", min: 0, max: 20},
-            {strokeColor: "#ef4444", min: 20, max: 100}
-        ]
-    };
+    const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: "#fff" }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
     const gNH3 = new Gauge(document.getElementById("gauge-nh3")).setOptions(gOpts);
     const gTemp = new Gauge(document.getElementById("gauge-temp")).setOptions(gOpts);
     gNH3.maxValue = 100; gTemp.maxValue = 50;
 
-    /* ================= LÓGICA DE VIDEO ================= */
+    /* ================= CONTROL DE VIDEO ================= */
     function conectarStream() {
         const img = document.getElementById("video-stream");
         const status = document.getElementById("status-text");
@@ -130,50 +113,35 @@
 
         img.style.display = "block";
         status.style.display = "none";
-        btn.innerText = "✅ RECIBIENDO DESDE JAVA";
+        btn.innerText = "🎥 TRANSMITIENDO DESDE PC";
         btn.style.background = "#22c55e";
 
-        // El navegador ahora pide el video al servidor Java, no a la cámara.
-        // Esto evita el error de Mixed Content de GitHub.
         setInterval(() => {
-            img.src = PROXY_SERVER + "?ts=" + Date.now();
-        }, 800); 
+            img.src = JAVA_IP + "?cache=" + Date.now();
+        }, 1000); 
     }
 
-    function controlar(comando) {
-        // Enviamos el comando de movimiento a través de un objeto Image (Truco silencioso)
-        const ping = new Image();
-        ping.src = CAM_IP + "&cmd=" + comando + "&_ts=" + Date.now();
+    function mover(cmd) {
+        new Image().src = CAM_DIRECTA + "&cmd=" + cmd + "&_ts=" + Date.now();
     }
 
-    /* ================= ACTUALIZACIÓN SENSORES ================= */
+    /* ================= FIREBASE REALTIME ================= */
     db.ref("galpon/actual").on("value", snap => {
-        const data = snap.val();
-        if(!data) return;
-
-        // NH3
-        if(data.nh3_ppm != null) {
-            gNH3.set(data.nh3_ppm);
-            const el = document.getElementById("val-nh3");
-            const lbl = document.getElementById("label-nh3");
-            el.innerText = data.nh3_ppm + " ppm";
-            el.style.color = data.nh3_ppm > 20 ? "#ef4444" : "#22c55e";
-            lbl.innerText = data.nh3_ppm > 20 ? "🚨 NIVEL CRÍTICO" : "✅ AIRE SEGURO";
-            lbl.style.color = data.nh3_ppm > 20 ? "#ef4444" : "#22c55e";
+        const d = snap.val();
+        if(!d) return;
+        if(d.nh3_ppm != null) {
+            gNH3.set(d.nh3_ppm);
+            document.getElementById("val-nh3").innerText = d.nh3_ppm + " ppm";
+            document.getElementById("label-nh3").innerText = d.nh3_ppm > 20 ? "🚨 PELIGRO" : "✅ ÓPTIMO";
+            document.getElementById("card-nh3").style.borderColor = d.nh3_ppm > 20 ? "#ef4444" : "#22c55e";
         }
-
-        // Temperatura
-        if(data.temperatura != null) {
-            gTemp.set(data.temperatura);
-            const elT = document.getElementById("val-temp");
-            const lblT = document.getElementById("label-temp");
-            elT.innerText = data.temperatura + "°C";
-            elT.style.color = data.temperatura > 31 ? "#ef4444" : "#22c55e";
-            lblT.innerText = data.temperatura > 31 ? "🚨 ALTA TEMPERATURA" : "✅ TEMPERATURA OK";
-            lblT.style.color = data.temperatura > 31 ? "#ef4444" : "#22c55e";
+        if(d.temperatura != null) {
+            gTemp.set(d.temperatura);
+            document.getElementById("val-temp").innerText = d.temperatura + "°C";
+            document.getElementById("label-temp").innerText = d.temperatura > 31 ? "🚨 CALOR" : "✅ ÓPTIMO";
+            document.getElementById("card-temp").style.borderColor = d.temperatura > 31 ? "#ef4444" : "#22c55e";
         }
     });
 </script>
-
 </body>
 </html>
