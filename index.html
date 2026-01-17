@@ -2,43 +2,69 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Dashboard</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <title>Capellán Cloud</title>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; }
-        .card { background: #1e293b; padding: 20px; border-radius: 15px; border: 2px solid #3b82f6; width: 600px; margin: auto; }
-        .video-box { width: 100%; height: 350px; background: #000; border-radius: 10px; margin-top: 15px; }
+        .grid { display: flex; justify-content: center; gap: 20px; padding: 50px; }
+        .card { background: #1e293b; border-radius: 15px; padding: 30px; border: 2px solid #334155; width: 300px; }
+        .val { font-size: 3rem; color: #3b82f6; font-weight: bold; margin: 20px 0; }
+        .video-card { width: 400px; background: #1e293b; border-radius: 15px; padding: 20px; border: 2px solid #3b82f6; }
+        .cam-box { width: 100%; height: 450px; background: #000; border-radius: 10px; overflow: hidden; border: 1px solid #3b82f6; }
         img { width: 100%; height: 100%; object-fit: contain; }
     </style>
 </head>
 <body>
     <h1>CAPELLÁN CLOUD 🚦</h1>
-    <div class="card">
-        <h3>VISTA DEL GALPÓN (PUERTO 8085)</h3>
-        <div class="video-box">
-            <img id="foscam-img" src="">
+    <div class="grid">
+        <div class="card">
+            <h3>AMONÍACO</h3>
+            <div id="nh3" class="val">--</div>
+            <p>PPM</p>
         </div>
-        <p id="debug-msg">Estado: Esperando servidor...</p>
+        <div class="card">
+            <h3>TEMPERATURA</h3>
+            <div id="temp" class="val">--</div>
+            <p>°C</p>
+        </div>
+        <div class="video-card">
+            <h3>VISTA EN VIVO</h3>
+            <div class="cam-box">
+                <img id="live-video" src="">
+            </div>
+            <p id="status" style="font-size: 12px; color: #64748b; margin-top: 10px;">Conectando a PC Proxy...</p>
+        </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script>
         const PROXY = "http://192.168.2.208:8085/stream-galpon";
-        
-        setInterval(() => {
-            const img = document.getElementById("foscam-img");
-            const debug = document.getElementById("debug-msg");
-            
-            img.src = PROXY + "?t=" + Date.now();
-            
-            img.onload = () => debug.innerText = "✅ Transmitiendo en vivo";
-            img.onerror = () => debug.innerText = "❌ Error: ¿El servidor Java está corriendo?";
-        }, 1200);
+        const video = document.getElementById("live-video");
+        const status = document.getElementById("status");
 
-        // Firebase
+        // Bucle de video
+        setInterval(() => {
+            const tempImg = new Image();
+            tempImg.src = PROXY + "?t=" + Date.now();
+            tempImg.onload = () => {
+                video.src = tempImg.src;
+                status.innerText = "✅ Transmisión Activa";
+                status.style.color = "#22c55e";
+            };
+            tempImg.onerror = () => {
+                status.innerText = "❌ Error: Revisa el servidor Java en 192.168.2.208";
+                status.style.color = "#ef4444";
+            };
+        }, 1000);
+
+        // Firebase (Ajusta con tus datos si es necesario)
         firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
         firebase.database().ref("galpon/actual").on("value", s => {
-            // Aquí puedes añadir los valores de NH3 y Temp si quieres
+            const d = s.val();
+            if(d) {
+                document.getElementById("nh3").innerText = d.nh3_ppm;
+                document.getElementById("temp").innerText = d.temperatura;
+            }
         });
     </script>
 </body>
