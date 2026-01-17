@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Dashboard Alex</title>
+    <title>Capellán Cloud | Control Semáforo</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -15,8 +15,9 @@
             --safe: #22c55e; --warn: #eab308; --danger: #ef4444; --primary: #3b82f6;
         }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
         
+        /* Diseño Semáforo que te gusta */
         .card { 
             background: var(--card); border-radius: 15px; padding: 20px; 
             border: 4px solid #334155; text-align: center; transition: 0.5s;
@@ -25,21 +26,22 @@
         .status-warn { border-color: var(--warn); box-shadow: 0 0 15px rgba(234, 179, 8, 0.2); }
         .status-danger { border-color: var(--danger); box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
 
-        .val { font-size: 3.5rem; font-weight: bold; margin: 5px 0; }
-        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 250px; }
+        .val { font-size: 3.2rem; font-weight: bold; margin: 5px 0; }
+        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 240px; }
         
-        .btn-ctrl { background: #334155; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 2px; }
-        .btn-ctrl:hover { background: var(--primary); }
+        /* Controles de Movimiento */
+        .ptz-btn { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 3px; min-width: 45px; }
+        .ptz-btn:active { background: var(--primary); }
 
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #0f172a; border-radius: 10px; overflow: hidden; }
         th, td { padding: 12px; text-align: center; border-bottom: 1px solid #334155; }
-        th { color: var(--primary); font-size: 0.8rem; }
+        th { color: var(--primary); font-size: 0.8rem; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align:center; color: var(--primary); margin-bottom: 5px;">CAPELLÁN CLOUD 🚦</h1>
-    <p style="text-align:center; margin-bottom: 20px; color: var(--safe);">● CONEXIÓN CÁMARA EXITOSA (IP .193)</p>
+    <h1 style="text-align:center; color: var(--primary);">CAPELLÁN CLOUD 🚦</h1>
+    <p id="conn-status" style="text-align:center; margin-bottom: 20px; color: var(--safe); font-weight: bold;">● CONEXIÓN ACTIVA (.193)</p>
 
     <div class="grid">
         <div id="card-nh3" class="card">
@@ -56,23 +58,24 @@
             <div id="label-temp" style="font-weight:bold">--</div>
         </div>
 
-        <div class="card" style="border-color: var(--primary); grid-column: span 1;">
-            <h3>CÁMARA EN VIVO</h3>
+        <div class="card" style="border-color: var(--primary);">
+            <h3>VISTA Y MOVIMIENTO</h3>
             <img id="foscam-video" src="" class="cam-frame">
-            <div style="margin-top:10px;">
-                <button class="btn-ctrl" onclick="mover('ptzMoveUp')">▲</button><br>
-                <button class="btn-ctrl" onclick="mover('ptzMoveLeft')">◄</button>
-                <button class="btn-ctrl" onclick="mover('ptzReset')">🏠</button>
-                <button class="btn-ctrl" onclick="mover('ptzMoveRight')">►</button><br>
-                <button class="btn-ctrl" onclick="mover('ptzMoveDown')">▼</button>
+            
+            <div style="margin-top: 15px;">
+                <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
+                <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
+                <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
+                <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
+                <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
             </div>
         </div>
     </div>
 
     <div style="max-width:1200px; margin: 30px auto; background: var(--card); padding:20px; border-radius:15px; border: 1px solid #334155;">
-        <h3 style="color:var(--primary); margin-top:0;">HISTORIAL DE SENSORES</h3>
+        <h3 style="color:var(--primary); margin-top:0;">HISTORIAL RECIENTE</h3>
         <table>
-            <thead><tr><th>Hora</th><th>NH3 (PPM)</th><th>Temp (°C)</th><th>Hum (%)</th><th>Lluvia</th></tr></thead>
+            <thead><tr><th>Hora</th><th>NH3</th><th>Temp</th><th>Hum</th><th>Lluvia</th></tr></thead>
             <tbody id="history-body"></tbody>
         </table>
     </div>
@@ -82,16 +85,18 @@
         const USR = "alex";
         const PWD = "F7324088";
         const base = `http://${IP}/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
+        
+        // Formato MJPEG para que el navegador lo muestre sin plugins
+        const streamUrl = `${base}&cmd=getLiveStream&type=1`; 
 
         function mover(cmd) {
-            fetch(`${base}&cmd=${cmd}`).catch(e => console.log("Moviendo..."));
+            fetch(`${base}&cmd=${cmd}`).catch(e => console.log("Movimiento enviado"));
         }
 
         window.onload = function() {
             firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
             const db = firebase.database();
 
-            // Gauges
             const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [
                 {strokeColor: "#22c55e", min: 0, max: 20}, 
                 {strokeColor: "#eab308", min: 20, max: 40}, 
@@ -105,12 +110,9 @@
                 if(d) {
                     const n = d.nh3_ppm || 0;
                     const t = d.temperatura || 0;
-                    
                     gNH3.set(n); document.getElementById('val-nh3').innerText = n;
                     gTemp.set(t); document.getElementById('val-temp').innerText = t + "°C";
-
-                    updateStatus('nh3', n);
-                    updateStatus('temp', t);
+                    updateStatus('nh3', n); updateStatus('temp', t);
                     updateTable(n, t, d.humedad, d.lluvia);
                 }
             });
@@ -120,12 +122,12 @@
                 const lab = document.getElementById('label-' + id);
                 card.classList.remove('status-safe', 'status-warn', 'status-danger');
                 if(id === 'nh3') {
-                    if(val < 20) { card.classList.add('status-safe'); lab.innerText = "SITUACIÓN SEGURA"; }
-                    else if(val < 40) { card.classList.add('status-warn'); lab.innerText = "NIVELES ALTOS"; }
-                    else { card.classList.add('status-danger'); lab.innerText = "PELIGRO GAS"; }
+                    if(val < 20) { card.classList.add('status-safe'); lab.innerText = "NIVEL SEGURO"; }
+                    else if(val < 40) { card.classList.add('status-warn'); lab.innerText = "PRECAUCIÓN"; }
+                    else { card.classList.add('status-danger'); lab.innerText = "PELIGRO"; }
                 } else {
-                    if(val <= 31) { card.classList.add('status-safe'); lab.innerText = "AMBIENTE ÓPTIMO"; }
-                    else { card.classList.add('status-danger'); lab.innerText = "ALTA TEMPERATURA"; }
+                    if(val <= 31) { card.classList.add('status-safe'); lab.innerText = "ÓPTIMA"; }
+                    else { card.classList.add('status-danger'); lab.innerText = "CALOR ALTO"; }
                 }
             }
 
@@ -133,11 +135,11 @@
                 const tbody = document.getElementById('history-body');
                 const row = `<tr><td>${new Date().toLocaleTimeString()}</td><td>${n}</td><td>${t}°C</td><td>${h}%</td><td>${r}</td></tr>`;
                 tbody.insertAdjacentHTML('afterbegin', row);
-                if (tbody.rows.length > 10) tbody.deleteRow(10);
+                if (tbody.rows.length > 8) tbody.deleteRow(8);
             }
 
-            // CARGAR VIDEO FINAL
-            document.getElementById('foscam-video').src = `${base}&cmd=getLiveStream`;
+            // Inyectar el video
+            document.getElementById('foscam-video').src = streamUrl;
         };
     </script>
 </body>
