@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Dashboard Alex</title>
+    <title>Capellán Cloud | Control Galpón</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
@@ -17,7 +17,6 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
         
-        /* Semáforo */
         .card { 
             background: var(--card); border-radius: 15px; padding: 20px; 
             border: 4px solid #334155; text-align: center; transition: 0.5s;
@@ -27,16 +26,16 @@
         .status-danger { border-color: var(--danger); }
 
         .val { font-size: 2.8rem; font-weight: bold; margin: 5px 0; }
-        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 200px; }
+        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 220px; }
         
         .btn-check {
-            background: var(--primary); color: white; border: none; padding: 10px;
-            border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold;
+            background: var(--primary); color: white; border: none; padding: 12px;
+            border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold;
         }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
         th, td { padding: 10px; text-align: center; border-bottom: 1px solid #334155; }
-        th { color: var(--primary); }
+        th { color: var(--primary); background: #0f172a; }
 
         .log-box { background: #020617; border-radius: 10px; padding: 10px; height: 80px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; margin: 20px auto; max-width: 1200px; border: 1px solid #1e293b; }
         .rain-alert { color: #60a5fa; font-weight: bold; animation: blink 1s infinite; }
@@ -46,7 +45,7 @@
 <body>
 
     <h1 style="text-align:center; color: var(--primary); margin-bottom: 5px;">CAPELLÁN CLOUD 🚦</h1>
-    <p style="text-align:center; margin-bottom: 20px; font-size: 0.9rem; color: #94a3b8;">Usuario: Alex | Monitoreo en Vivo</p>
+    <p style="text-align:center; margin-bottom: 20px; color: #94a3b8;">Cámara: Galpon (FI9821P V2) | IP: 192.168.2.97</p>
     <div id="status" style="text-align:center; margin-bottom:20px; font-weight:bold;">CONECTANDO...</div>
 
     <div class="grid">
@@ -74,8 +73,8 @@
         <div class="card" style="border-color: var(--primary);">
             <h3>VISTA EN VIVO</h3>
             <img id="foscam-stream" src="" class="cam-frame">
-            <button class="btn-check" onclick="window.open(camUrl, '_blank')">ABRIR CÁMARA EN PESTAÑA</button>
-            <p style="font-size:0.6rem; color:#94a3b8; margin-top:8px;">Habilite "Contenido no seguro" en el candado del navegador.</p>
+            <button class="btn-check" onclick="window.open(camUrl, '_blank')">FORZAR VIDEO (IP .97)</button>
+            <p style="font-size:0.6rem; color:#94a3b8; margin-top:8px;">Habilite "Contenido no seguro" en el candado.</p>
         </div>
     </div>
 
@@ -90,25 +89,22 @@
     <div class="log-box" id="logs">> Monitor activo...</div>
 
     <script>
-        // CONFIGURACIÓN DE CÁMARA (USUARIO ALEX)
-        const camUrl = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=alex&pwd=7324088";
+        // URL ACTUALIZADA CON LA INFO DE TU CAPTURA
+        const camUrl = "http://192.168.2.97:88/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=alex&pwd=7324088";
 
         window.onload = function() {
-            // 1. FIREBASE
             const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
             firebase.initializeApp(firebaseConfig);
             const db = firebase.database();
 
-            // 2. GAUGES
             const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#eab308", min: 20, max: 40}, {strokeColor: "#ef4444", min: 40, max: 100}] };
             const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts); gNH3.maxValue = 100;
             const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts); gTemp.maxValue = 50;
 
-            // 3. RECIBIR DATOS
             db.ref('galpon/actual').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
-                    document.getElementById('status').innerText = "● SISTEMA CONECTADO";
+                    document.getElementById('status').innerText = "● SENSORES CONECTADOS";
                     document.getElementById('status').style.color = "var(--safe)";
 
                     const nh3 = data.nh3_ppm || 0;
@@ -116,7 +112,6 @@
                     const hum = data.humedad || 0;
                     const lluvia = data.lluvia || "NO";
 
-                    // Actualizar UI
                     gNH3.set(nh3);
                     document.getElementById('val-nh3').innerText = nh3;
                     updateLight('nh3', nh3);
@@ -130,7 +125,6 @@
                     const rainBox = document.getElementById('val-lluvia');
                     if(lluvia === "SI") {
                         rainBox.innerHTML = "<span class='rain-alert'>🌧️ LLUVIA DETECTADA</span>";
-                        addLog("Alerta: Lluvia en el galpón");
                     } else {
                         rainBox.innerText = "☀️ Despejado";
                     }
@@ -143,14 +137,13 @@
                 const card = document.getElementById('card-' + id);
                 const lab = document.getElementById('label-' + id);
                 card.classList.remove('status-safe', 'status-warn', 'status-danger');
-
                 if (id === 'nh3') {
-                    if (val < 20) { card.classList.add('status-safe'); lab.innerText = "OK - SEGURO"; lab.style.color = "var(--safe)"; }
+                    if (val < 20) { card.classList.add('status-safe'); lab.innerText = "SEGURO"; lab.style.color = "var(--safe)"; }
                     else if (val < 40) { card.classList.add('status-warn'); lab.innerText = "ADVERTENCIA"; lab.style.color = "var(--warn)"; }
-                    else { card.classList.add('status-danger'); lab.innerText = "PELIGRO CRÍTICO"; lab.style.color = "var(--danger)"; }
+                    else { card.classList.add('status-danger'); lab.innerText = "CRÍTICO"; lab.style.color = "var(--danger)"; }
                 } else {
-                    if (val >= 20 && val <= 31) { card.classList.add('status-safe'); lab.innerText = "TEMPERATURA OK"; lab.style.color = "var(--safe)"; }
-                    else { card.classList.add('status-danger'); lab.innerText = "ESTRÉS TÉRMICO"; lab.style.color = "var(--danger)"; }
+                    if (val <= 31) { card.classList.add('status-safe'); lab.innerText = "ÓPTIMA"; lab.style.color = "var(--safe)"; }
+                    else { card.classList.add('status-danger'); lab.innerText = "ALTA"; lab.style.color = "var(--danger)"; }
                 }
             }
 
@@ -161,12 +154,6 @@
                 if (tbody.rows.length > 10) tbody.deleteRow(10);
             }
 
-            function addLog(msj) {
-                const logs = document.getElementById('logs');
-                logs.innerHTML = `[${new Date().toLocaleTimeString()}] ${msj}<br>` + logs.innerHTML;
-            }
-
-            // CARGAR VIDEO
             document.getElementById('foscam-stream').src = camUrl;
         };
     </script>
