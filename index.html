@@ -1,101 +1,194 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Capellán Cloud | Dashboard Final</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
-    <style>
-        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; text-align: center; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
-        .card { background: var(--card); border-radius: 20px; padding: 25px; border: 5px solid #334155; }
-        .val { font-size: 3.8rem; font-weight: bold; margin: 10px 0; }
-        
-        /* Contenedor de Video */
-        .cam-container { width: 100%; border-radius: 15px; border: 3px solid var(--primary); background: #000; height: 350px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        #foscam-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
-        
-        .btn-auth { background: var(--danger); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 15px; }
-        .ptz-btn { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin: 3px; width: 55px; }
-    </style>
+<meta charset="UTF-8">
+<title>Capellán Cloud | Dashboard Final</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<!-- GaugeJS -->
+<script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
+
+<style>
+:root {
+    --bg:#0f172a; --card:#1e293b; --text:#f8fafc;
+    --primary:#3b82f6; --safe:#22c55e; --danger:#ef4444;
+}
+body {
+    font-family:'Segoe UI',sans-serif;
+    background:var(--bg); color:var(--text);
+    margin:0; padding:20px; text-align:center;
+}
+.grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+    gap:20px; max-width:1200px; margin:auto;
+}
+.card {
+    background:var(--card);
+    border-radius:20px;
+    padding:25px;
+    border:5px solid #334155;
+}
+.val {
+    font-size:3.5rem;
+    font-weight:bold;
+}
+
+/* Video */
+.cam-container {
+    width:100%; height:350px;
+    border-radius:15px;
+    border:3px solid var(--primary);
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+}
+#foscam-stream {
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    display:none;
+}
+.btn-auth {
+    background:var(--danger);
+    color:white;
+    border:none;
+    padding:15px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+    width:100%;
+    margin-bottom:15px;
+}
+.ptz-btn {
+    background:#334155;
+    color:white;
+    border:none;
+    padding:12px;
+    border-radius:8px;
+    cursor:pointer;
+    margin:3px;
+    width:55px;
+}
+</style>
 </head>
+
 <body>
 
-    <h1 style="color: var(--primary); margin-bottom: 20px;">CAPELLÁN CLOUD 🚦</h1>
+<h1 style="color:var(--primary)">CAPELLÁN CLOUD 🚦</h1>
 
-    <div class="grid">
-        <div class="card">
-            <h3>AMONÍACO (NH3)</h3>
-            <canvas id="gauge-nh3" style="width:100%"></canvas>
-            <div id="val-nh3" class="val">--</div>
+<div class="grid">
+
+    <!-- NH3 -->
+    <div class="card">
+        <h3>AMONÍACO (NH₃)</h3>
+        <canvas id="gauge-nh3" width="300" height="300"></canvas>
+        <div id="val-nh3" class="val">--</div>
+    </div>
+
+    <!-- TEMP -->
+    <div class="card">
+        <h3>TEMPERATURA</h3>
+        <canvas id="gauge-temp" width="300" height="300"></canvas>
+        <div id="val-temp" class="val">--</div>
+    </div>
+
+    <!-- CAMARA -->
+    <div class="card" style="border-color:var(--primary)">
+        <button id="btn-play" class="btn-auth" onclick="activarVideo()">
+            PASO 1: ACTIVAR VIDEO
+        </button>
+
+        <div class="cam-container">
+            <img id="foscam-stream">
+            <div id="loading-text" style="color:#64748b">
+                Esperando cámara...
+            </div>
         </div>
 
-        <div class="card">
-            <h3>TEMPERATURA</h3>
-            <canvas id="gauge-temp" style="width:100%"></canvas>
-            <div id="val-temp" class="val">--</div>
-        </div>
-
-        <div class="card" style="border-color: var(--primary);">
-            <button id="btn-play" class="btn-auth" onclick="activarVideo()">PASO 1: ACTIVAR FLUJO DE VIDEO</button>
-            <div class="cam-container">
-                <img id="foscam-stream" src="">
-                <div id="loading-text" style="color: #64748b;">Esperando cámara...</div>
-            </div>
-            
-            <div style="margin-top: 15px;">
-                <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
-                <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
-                <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
-            </div>
+        <div style="margin-top:15px">
+            <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
+            <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
+            <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
+            <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
+            <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
         </div>
     </div>
 
-    <script>
-        const IP = "192.168.2.193:88";
-        const USR = "alex";
-        const PWD = "F7324088";
-        const base = `http://${IP}/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
+</div>
 
-        function activarVideo() {
-            // Abrimos la ventana de autorización (la que te dio el texto)
-            window.open(base + "&cmd=getDevState", "auth", "width=300,height=200");
-            
-            // Esperamos 2 segundos y forzamos el stream MJPEG
-            setTimeout(() => {
-                const stream = document.getElementById('foscam-stream');
-                stream.src = `${base}&cmd=getLiveStream&type=1&_ts=${new Date().getTime()}`;
-                stream.style.display = "block";
-                document.getElementById('loading-text').style.display = "none";
-                document.getElementById('btn-play').innerText = "✅ VIDEO CONECTADO";
-                document.getElementById('btn-play').style.background = "#22c55e";
-            }, 2000);
-        }
+<script>
+/* ================= CAMARA ================= */
+const IP  = "192.168.2.193:88";
+const USR = "alex";
+const PWD = "F7324088";
+const base = `http://${IP}/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
 
-        function mover(cmd) { fetch(`${base}&cmd=${cmd}`).catch(e => {}); }
+function activarVideo(){
+    window.open(base+"&cmd=getDevState","auth","width=300,height=200");
+    setTimeout(()=>{
+        const img = document.getElementById("foscam-stream");
+        img.src = `${base}&cmd=getLiveStream&type=1&_ts=${Date.now()}`;
+        img.style.display="block";
+        document.getElementById("loading-text").style.display="none";
+        const btn=document.getElementById("btn-play");
+        btn.innerText="✅ VIDEO CONECTADO";
+        btn.style.background="#22c55e";
 
-        window.onload = function() {
-            firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
-            const db = firebase.database();
-
-            // Config Gauges
-            const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
-            const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts);
-            const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts);
-            gNH3.maxValue = 100; gTemp.maxValue = 50;
-
-            db.ref('galpon/actual').on('value', (snap) => {
-                const d = snap.val();
-                if(d) {
-                    gNH3.set(d.nh3_ppm); document.getElementById('val-nh3').innerText = d.nh3_ppm;
-                    gTemp.set(d.temperatura); document.getElementById('val-temp').innerText = d.temperatura + "°C";
-                }
-            });
+        img.onerror=()=>{ 
+            img.src = `${base}&cmd=getLiveStream&type=1&_ts=${Date.now()}`;
         };
-    </script>
+    },2000);
+}
+function mover(cmd){ fetch(`${base}&cmd=${cmd}`).catch(()=>{}); }
+
+/* ================= FIREBASE ================= */
+firebase.initializeApp({
+    databaseURL:"https://galpon-capellan-default-rtdb.firebaseio.com"
+});
+const db = firebase.database();
+
+/* ================= GAUGES ================= */
+const gOpts = {
+    angle:-0.2,
+    lineWidth:0.2,
+    pointer:{length:0.6,color:"#fff"},
+    staticZones:[
+        {strokeColor:"#22c55e",min:0,max:20},
+        {strokeColor:"#ef4444",min:20,max:100}
+    ]
+};
+
+const gNH3  = new Gauge(document.getElementById("gauge-nh3")).setOptions(gOpts);
+const gTemp = new Gauge(document.getElementById("gauge-temp")).setOptions(gOpts);
+gNH3.maxValue=100; gTemp.maxValue=50;
+
+function colorVal(el,val,limit){
+    el.style.color = val>limit ? "#ef4444" : "#22c55e";
+}
+
+db.ref("galpon/actual").on("value",snap=>{
+    const d=snap.val();
+    if(!d) return;
+
+    if(d.nh3_ppm!=null){
+        gNH3.set(d.nh3_ppm);
+        const e=document.getElementById("val-nh3");
+        e.innerText=d.nh3_ppm+" ppm";
+        colorVal(e,d.nh3_ppm,20);
+    }
+
+    if(d.temperatura!=null){
+        gTemp.set(d.temperatura);
+        document.getElementById("val-temp").innerText=d.temperatura+"°C";
+    }
+});
+</script>
+
 </body>
 </html>
