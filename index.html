@@ -2,89 +2,122 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Dashboard</title>
+    <title>Capellán Cloud | Control Total</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
 
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-        .card { background: #1e293b; padding: 20px; border-radius: 15px; width: 300px; border: 1px solid #334155; }
-        .val { font-size: 2.5rem; font-weight: bold; color: #3b82f6; }
-        .cam { width: 100%; border-radius: 10px; border: 2px solid #3b82f6; background: #000; }
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #334155; text-align: center; }
+        .val { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+        #foscam { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 200px; }
+        .log-box { background: #020617; border-radius: 10px; padding: 15px; height: 120px; overflow-y: auto; font-family: monospace; font-size: 0.85rem; text-align: left; border: 1px solid #1e293b; margin-top: 20px; max-width: 1200px; margin-left: auto; margin-right: auto; }
+        .alerta-lluvia { color: #60a5fa; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
-    <h1>CAPELLÁN CLOUD 🐔</h1>
-    <div id="conexion" style="color: #ef4444; margin-bottom: 20px; font-weight: bold;">● ESTADO: CARGANDO...</div>
+    <h1 style="text-align:center; margin-bottom: 5px;">CAPELLÁN CLOUD 🐔</h1>
+    <div id="status" style="text-align:center; margin-bottom:20px; font-weight:bold; color:var(--danger);">● BUSCANDO SENSORES...</div>
 
-    <div class="container">
+    <div class="grid">
         <div class="card">
-            <h3>AMONÍACO</h3>
-            <canvas id="gauge-nh3"></canvas>
-            <div id="txt-nh3" class="val">0.0</div>
+            <h3>AMONÍACO (NH3)</h3>
+            <canvas id="g-nh3"></canvas>
+            <div id="v-nh3" class="val" style="color:var(--danger)">0.0</div>
+            <span>PPM</span>
         </div>
 
         <div class="card">
             <h3>TEMPERATURA</h3>
-            <canvas id="gauge-temp"></canvas>
-            <div id="txt-temp" class="val">0.0</div>
+            <canvas id="g-temp"></canvas>
+            <div id="v-temp" class="val" style="color:var(--success)">0.0</div>
+            <span>°C</span>
         </div>
 
         <div class="card">
-            <h3>CÁMARA FOSCAM</h3>
-            <img id="foscam" src="" class="cam">
+            <h3>AMBIENTE</h3>
+            <div style="font-size: 0.9rem; color: #94a3b8;">HUMEDAD</div>
+            <div id="v-hum" class="val" style="color:var(--primary)">0%</div>
+            <hr style="border: 0; border-top: 1px solid #334155; margin: 15px 0;">
+            <div id="v-lluvia" style="font-size: 1.2rem;">☀️ Despejado</div>
+        </div>
+
+        <div class="card">
+            <h3>CÁMARA EN VIVO</h3>
+            <img id="foscam" src="" alt="Cargando Foscam...">
         </div>
     </div>
 
-    <script>
-        // 1. ESPERAR A QUE TODO CARGUE
-        window.onload = function() {
-            
-            // Verificación de seguridad
-            if (typeof firebase === 'undefined') {
-                document.getElementById('conexion').innerText = "● ERROR: LIBRERÍA NO CARGADA";
-                return;
-            }
+    <div class="log-box" id="logs">
+        > Consola de eventos lista...<br>
+    </div>
 
-            // 2. TU CONFIGURACIÓN
+    <script>
+        window.onload = function() {
+            // 1. FIREBASE CONFIG
             const firebaseConfig = {
                 databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com"
             };
             
-            // Inicializar
             firebase.initializeApp(firebaseConfig);
             const db = firebase.database();
-            
-            document.getElementById('conexion').innerText = "● ESTADO: CONECTADO A FIREBASE";
-            document.getElementById('conexion').style.color = "#22c55e";
 
-            // 3. CONFIGURAR GAUGES
+            // 2. GAUGES
             const opts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
-            const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(opts);
-            gNH3.maxValue = 100;
-            const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(opts);
-            gTemp.maxValue = 50;
+            const gNH3 = new Gauge(document.getElementById('g-nh3')).setOptions(opts); gNH3.maxValue = 100;
+            const gTemp = new Gauge(document.getElementById('g-temp')).setOptions(opts); gTemp.maxValue = 50;
 
-            // 4. ESCUCHAR DATOS REALES
-            db.ref('/').on('value', (snapshot) => {
+            // 3. ESCUCHAR RUTA ESPECÍFICA (galpon/actual)
+            db.ref('galpon/actual').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
-                    if(data.amoniaco !== undefined) {
-                        gNH3.set(data.amoniaco);
-                        document.getElementById('txt-nh3').innerText = data.amoniaco;
+                    document.getElementById('status').innerText = "● GALPÓN CONECTADO";
+                    document.getElementById('status').style.color = "var(--success)";
+
+                    // Amoníaco
+                    if(data.nh3_ppm !== undefined) {
+                        gNH3.set(data.nh3_ppm);
+                        document.getElementById('v-nh3').innerText = data.nh3_ppm;
+                        if(data.nh3_ppm > 20) agregarLog("⚠️ ALERTA: Amoníaco en nivel crítico!");
                     }
+
+                    // Temperatura
                     if(data.temperatura !== undefined) {
                         gTemp.set(data.temperatura);
-                        document.getElementById('txt-temp').innerText = data.temperatura;
+                        document.getElementById('v-temp').innerText = data.temperatura + "°C";
+                    }
+
+                    // Humedad
+                    if(data.humedad !== undefined) {
+                        document.getElementById('v-hum').innerText = data.humedad + "%";
+                    }
+
+                    // Lluvia (Si es "SI")
+                    const lluviaElement = document.getElementById('v-lluvia');
+                    if(data.lluvia === "SI") {
+                        if(lluviaElement.innerText !== "🌧️ LLUVIA DETECTADA") {
+                            lluviaElement.innerHTML = "<span class='alerta-lluvia'>🌧️ LLUVIA DETECTADA</span>";
+                            agregarLog("🌧️ Ha comenzado a llover en el galpón");
+                        }
+                    } else {
+                        lluviaElement.innerText = "☀️ Despejado";
                     }
                 }
             });
 
-            // 5. CARGAR CÁMARA
+            function agregarLog(msj) {
+                const log = document.getElementById('logs');
+                const time = new Date().toLocaleTimeString();
+                log.innerHTML = `[${time}] ${msj}<br>` + log.innerHTML;
+            }
+
+            // 4. VIDEO (Recuerda el permiso del candado en Chrome)
             document.getElementById('foscam').src = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=admin&pwd=7324088";
         };
     </script>
