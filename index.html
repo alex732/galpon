@@ -2,146 +2,60 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Dashboard Final</title>
-
+    <title>Capellán Cloud | Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
-
     <style>
-        :root {
-            --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
-            --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background-color: var(--bg); color: var(--text);
-            margin: 0; padding: 20px; text-align: center;
-        }
-        .container { max-width: 1200px; margin: auto; }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 25px; margin-top: 30px;
-        }
-        .card {
-            background: var(--card); border-radius: 20px;
-            padding: 25px; border: 4px solid #334155;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-        }
-        .val { font-size: 3.5rem; font-weight: bold; margin: 15px 0; }
-        
-        .cam-box {
-            width: 100%; height: 350px; background: #000;
-            border-radius: 15px; border: 3px solid var(--primary);
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden;
-        }
-        #video-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
-        
-        .btn-main {
-            background: var(--primary); color: white; border: none;
-            padding: 18px; border-radius: 12px; cursor: pointer;
-            font-weight: bold; width: 100%; margin-bottom: 15px; font-size: 1.1rem;
-        }
-        .ptz-btn {
-            background: #334155; color: white; border: none;
-            padding: 15px; border-radius: 10px; cursor: pointer;
-            margin: 4px; width: 60px; font-size: 1.3rem;
-        }
-        .ptz-btn:active { background: var(--primary); }
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
+        .card { background: #1e293b; border-radius: 15px; padding: 20px; border: 2px solid #334155; }
+        .cam-box { width: 100%; height: 320px; background: #000; border: 2px solid #3b82f6; border-radius: 10px; overflow: hidden; }
+        #video-stream { width: 100%; height: 100%; object-fit: contain; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h1 style="color: var(--primary); letter-spacing: 2px;">CAPELLÁN CLOUD 🚦</h1>
-
+    <h1>CAPELLÁN CLOUD 🚦</h1>
     <div class="grid">
-        <div id="card-nh3" class="card">
+        <div class="card">
             <h3>AMONÍACO (NH₃)</h3>
-            <canvas id="gauge-nh3" style="width: 100%; height: 160px;"></canvas>
-            <div id="val-nh3" class="val">--</div>
-            <p id="label-nh3" style="font-weight: bold;">--</p>
+            <canvas id="g1"></canvas>
+            <h2 id="v1">-- ppm</h2>
         </div>
-
-        <div id="card-temp" class="card">
+        <div class="card">
             <h3>TEMPERATURA</h3>
-            <canvas id="gauge-temp" style="width: 100%; height: 160px;"></canvas>
-            <div id="val-temp" class="val">--</div>
-            <p id="label-temp" style="font-weight: bold;">--</p>
+            <canvas id="g2"></canvas>
+            <h2 id="v2">-- °C</h2>
         </div>
-
-        <div class="card" style="border-color: var(--primary);">
-            <button id="btn-stream" class="btn-main" onclick="conectarStream()">CONECTAR VIA PROXY (192.168.2.208)</button>
+        <div class="card">
+            <button class="btn" onclick="iniciar()">CONECTAR VIDEO (PROXY PC)</button>
             <div class="cam-box">
                 <img id="video-stream" src="">
-                <div id="status-text" style="color: #475569;">Servidor Java Offline</div>
-            </div>
-            <div style="margin-top: 15px;">
-                <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
-                <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
-                <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-    /* ================= DATOS DE RED ================= */
-    const JAVA_IP = "http://192.168.2.208:8080/stream-galpon";
-    const CAM_DIRECTA = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=alex&pwd=F7324088";
+    <script>
+        const PROXY_URL = "http://192.168.2.208:8080/stream-galpon";
+        
+        firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
+        const db = firebase.database();
 
-    /* ================= FIREBASE ================= */
-    firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
-    const db = firebase.database();
-
-    /* ================= GAUGES ================= */
-    const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: "#fff" }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
-    const gNH3 = new Gauge(document.getElementById("gauge-nh3")).setOptions(gOpts);
-    const gTemp = new Gauge(document.getElementById("gauge-temp")).setOptions(gOpts);
-    gNH3.maxValue = 100; gTemp.maxValue = 50;
-
-    /* ================= CONTROL DE VIDEO ================= */
-    function conectarStream() {
-        const img = document.getElementById("video-stream");
-        const status = document.getElementById("status-text");
-        const btn = document.getElementById("btn-stream");
-
-        img.style.display = "block";
-        status.style.display = "none";
-        btn.innerText = "🎥 TRANSMITIENDO DESDE PC";
-        btn.style.background = "#22c55e";
-
-        setInterval(() => {
-            img.src = JAVA_IP + "?cache=" + Date.now();
-        }, 1000); 
-    }
-
-    function mover(cmd) {
-        new Image().src = CAM_DIRECTA + "&cmd=" + cmd + "&_ts=" + Date.now();
-    }
-
-    /* ================= FIREBASE REALTIME ================= */
-    db.ref("galpon/actual").on("value", snap => {
-        const d = snap.val();
-        if(!d) return;
-        if(d.nh3_ppm != null) {
-            gNH3.set(d.nh3_ppm);
-            document.getElementById("val-nh3").innerText = d.nh3_ppm + " ppm";
-            document.getElementById("label-nh3").innerText = d.nh3_ppm > 20 ? "🚨 PELIGRO" : "✅ ÓPTIMO";
-            document.getElementById("card-nh3").style.borderColor = d.nh3_ppm > 20 ? "#ef4444" : "#22c55e";
+        function iniciar() {
+            const img = document.getElementById("video-stream");
+            setInterval(() => {
+                img.src = PROXY_URL + "?t=" + Date.now();
+            }, 1000);
         }
-        if(d.temperatura != null) {
-            gTemp.set(d.temperatura);
-            document.getElementById("val-temp").innerText = d.temperatura + "°C";
-            document.getElementById("label-temp").innerText = d.temperatura > 31 ? "🚨 CALOR" : "✅ ÓPTIMO";
-            document.getElementById("card-temp").style.borderColor = d.temperatura > 31 ? "#ef4444" : "#22c55e";
-        }
-    });
-</script>
+
+        db.ref("galpon/actual").on("value", snap => {
+            const d = snap.val();
+            if(d) {
+                document.getElementById("v1").innerText = d.nh3_ppm + " ppm";
+                document.getElementById("v2").innerText = d.temperatura + " °C";
+            }
+        });
+    </script>
 </body>
 </html>
