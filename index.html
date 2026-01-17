@@ -3,202 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Control Avícola</title>
+    <title>Capellán Cloud | Control Avícola Realtime</title>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --primary: #3b82f6;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --text-main: #f8fafc;
+            --bg-dark: #0f172a; --card-bg: #1e293b; --primary: #3b82f6;
+            --danger: #ef4444; --success: #22c55e; --text-main: #f8fafc;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark);
+            color: var(--text-main); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center;
         }
-
         .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px; width: 100%; max-width: 1200px;
         }
-
         .card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            border: 1px solid #334155;
+            background: var(--card-bg); border-radius: 15px; padding: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); text-align: center; border: 1px solid #334155;
         }
-
-        .camera-box {
-            grid-column: span 1;
-            min-height: 400px;
-        }
-
-        canvas {
-            width: 100% !important;
-            height: auto !important;
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
+        .stat-value { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
         .btn-cam {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
+            background: var(--primary); color: white; border: none; padding: 12px;
+            border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s;
         }
-
-        .btn-cam:active {
-            transform: scale(0.95);
-            background: #2563eb;
-        }
-
+        .btn-cam:active { transform: scale(0.95); }
         .log-container {
-            background: #000;
-            border-radius: 10px;
-            padding: 10px;
-            height: 100px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 0.8rem;
-            text-align: left;
-            margin-top: 10px;
+            background: #000; border-radius: 10px; padding: 10px; height: 100px;
+            overflow-y: auto; font-family: monospace; font-size: 0.8rem; text-align: left; margin-top: 10px;
         }
-
-        .reco-critica { color: var(--danger); }
-        
-        @keyframes blink {
-            50% { opacity: 0.5; }
-        }
+        .reco-critica { color: var(--danger); animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
     <h1 style="color: var(--primary); margin-bottom: 5px;">CAPELLÁN CLOUD 🐔</h1>
-    <p style="color: #64748b; margin-bottom: 30px;">Panel de Control Galpón Inteligente</p>
+    <div id="db-status" style="font-size: 0.8rem; color: var(--danger); margin-bottom: 20px;">● DESCONECTADO DE FIREBASE</div>
 
     <div class="dashboard-grid">
-        
         <div class="card">
             <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3"></canvas>
-            <div id="val-nh3" class="stat-value">0.0</div>
-            <p>PPM (Partes por millón)</p>
+            <div id="val-nh3" class="stat-value">--.-</div>
+            <p>PPM</p>
         </div>
 
         <div class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp"></canvas>
-            <div id="val-temp" class="stat-value">0.0</div>
-            <p>°C Celsius</p>
+            <div id="val-temp" class="stat-value">--.-</div>
+            <p>°C</p>
         </div>
 
-        <div class="card camera-box">
+        <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span style="color:var(--success); font-weight:bold; font-size:0.8rem;">● FOSCAM LIVE</span>
-                <span style="font-size:0.7rem; color:#94a3b8;">IP: 192.168.2.193</span>
+                <span style="color:var(--success); font-weight:bold; font-size:0.8rem;">● FOSCAM .193</span>
             </div>
-
             <div style="background:#000; border-radius:10px; overflow:hidden; border:2px solid var(--primary); line-height:0;">
-                <img id="foscam-video" src="" style="width:100%; height:auto; min-height:200px;" 
-                     onerror="this.src='https://via.placeholder.com/400x225/000000/3b82f6?text=REVISE+CONFIG+CONTENIDO+NO+SEGURO'">
+                <img id="foscam-video" src="" style="width:100%; height:auto;" onerror="this.src='https://via.placeholder.com/400x225/000000/3b82f6?text=REVISE+PERMISOS+HTTP'">
             </div>
-
             <div style="margin-top:15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 150px; margin: 15px auto;">
-                <div></div>
-                <button onmousedown="controlCam('arriba')" onmouseup="controlCam('stop')" class="btn-cam">▲</button>
-                <div></div>
+                <div></div><button onmousedown="controlCam('arriba')" onmouseup="controlCam('stop')" class="btn-cam">▲</button><div></div>
                 <button onmousedown="controlCam('izq')" onmouseup="controlCam('stop')" class="btn-cam">◀</button>
                 <button onclick="controlCam('stop')" class="btn-cam" style="background:var(--danger);">■</button>
                 <button onmousedown="controlCam('der')" onmouseup="controlCam('stop')" class="btn-cam">▶</button>
-                <div></div>
-                <button onmousedown="controlCam('abajo')" onmouseup="controlCam('stop')" class="btn-cam">▼</button>
-                <div></div>
+                <div></div><button onmousedown="controlCam('abajo')" onmouseup="controlCam('stop')" class="btn-cam">▼</button><div></div>
             </div>
-
-            <div class="log-container" id="reco-log">
-                > Sistema iniciado... esperando datos.
-            </div>
+            <div class="log-container" id="reco-log">> Esperando datos reales...</div>
         </div>
-
     </div>
 
     <script>
-        // CONFIGURACIÓN FOSCAM
-        const f_ip = "192.168.2.193";
-        const f_port = "88";
-        const f_user = "admin";
-        const f_pass = "7324088"; // Usando tu clave recordada
+        // 1. CONFIGURACIÓN FIREBASE (REEMPLAZA CON TUS DATOS)
+        const firebaseConfig = {
+            apiKey: "AIzaSy...",
+            authDomain: "tu-proyecto.firebaseapp.com",
+            databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
+            projectId: "tu-proyecto",
+            storageBucket: "tu-proyecto.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        // Inicializar Video
+        // 2. CONFIGURACIÓN FOSCAM
+        const f_ip = "192.168.2.193", f_port = "88", f_user = "admin", f_pass = "7324088";
         document.getElementById('foscam-video').src = `http://${f_ip}:${f_port}/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=${f_user}&pwd=${f_pass}`;
 
         function controlCam(dir) {
             const cmds = {'arriba':'ptzMoveUp', 'abajo':'ptzMoveDown', 'izq':'ptzMoveLeft', 'der':'ptzMoveRight', 'stop':'ptzStopRun'};
-            const url = `http://${f_ip}:${f_port}/cgi-bin/CGIProxy.fcgi?cmd=${cmds[dir]}&usr=${f_user}&pwd=${f_pass}`;
-            fetch(url, { mode: 'no-cors' });
+            fetch(`http://${f_ip}:${f_port}/cgi-bin/CGIProxy.fcgi?cmd=${cmds[dir]}&usr=${f_user}&pwd=${f_pass}`, { mode: 'no-cors' });
         }
 
-        function tomarFotoAlerta(msj) {
-            const url = `http://${f_ip}:${f_port}/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr=${f_user}&pwd=${f_pass}`;
-            fetch(url, { mode: 'no-cors' });
-            const log = document.getElementById('reco-log');
-            log.innerHTML = `<div class="reco-critica">📸 FOTO CAPTURADA: ${msj}</div>` + log.innerHTML;
-        }
+        // 3. INICIALIZAR GAUGES
+        var opts = { angle: -0.2, lineWidth: 0.2, radiusScale: 1, pointer: { length: 0.6, strokeWidth: 0.035, color: '#FFF' }, 
+            staticZones: [ {strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#eab308", min: 20, max: 50}, {strokeColor: "#ef4444", min: 50, max: 100} ],
+            highDpiSupport: true };
+        var gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(opts); gNH3.maxValue = 100; gNH3.set(0);
+        var gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(opts); gTemp.maxValue = 50; gTemp.set(0);
 
-        // --- LÓGICA DE GAUGES (SIMULACIÓN O FIREBASE) ---
-        var opts = { angle: -0.2, lineWidth: 0.2, radiusScale: 1, pointer: { length: 0.6, strokeWidth: 0.035, color: '#FFFFFF' }, staticZones: [
-            {strokeColor: "#22c55e", min: 0, max: 20},
-            {strokeColor: "#eab308", min: 20, max: 50},
-            {strokeColor: "#ef4444", min: 50, max: 100}
-        ], limitMax: false, limitMin: false, strokeColor: '#E0E0E0', generateGradient: true, highDpiSupport: true };
-
-        var gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(opts);
-        gNH3.maxValue = 100; gNH3.set(0);
-
-        var gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(opts);
-        gTemp.maxValue = 50; gTemp.set(0);
-
-        // Simulador para pruebas en escritorio
-        let alertTriggered = false;
-        setInterval(() => {
-            let n = Math.random() * 25; // Simula variación de NH3
-            let t = 25 + Math.random() * 10; // Simula variación de Temp
-            
-            document.getElementById('val-nh3').innerText = n.toFixed(1);
-            document.getElementById('val-temp').innerText = t.toFixed(1);
-            gNH3.set(n); gTemp.set(t);
-
-            // Prueba de Alerta Inteligente
-            if(n > 20 && !alertTriggered) {
-                tomarFotoAlerta("NH3 ALTO: " + n.toFixed(1));
-                alertTriggered = true;
-                setTimeout(() => alertTriggered = false, 30000); // Bloqueo de 30 seg entre fotos
+        // 4. ESCUCHAR DATOS DE FIREBASE
+        // Asumiendo que tu Arduino envía a las rutas "/amoniaco" y "/temperatura"
+        db.ref('/').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('db-status').innerText = "● CONECTADO A GALPÓN REAL";
+                document.getElementById('db-status').style.color = "var(--success)";
+                
+                // Actualizar Interfaz
+                if(data.amoniaco !== undefined) {
+                    gNH3.set(data.amoniaco);
+                    document.getElementById('val-nh3').innerText = data.amoniaco.toFixed(1);
+                    // Lógica de Foto Automática
+                    if(data.amoniaco > 20) {
+                        fetch(`http://${f_ip}:${f_port}/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr=${f_user}&pwd=${f_pass}`, { mode: 'no-cors' });
+                        document.getElementById('reco-log').innerHTML = `<div class="reco-critica">⚠️ ALERTA: NH3 ALTO (${data.amoniaco}) - FOTO TOMADA</div>` + document.getElementById('reco-log').innerHTML;
+                    }
+                }
+                if(data.temperatura !== undefined) {
+                    gTemp.set(data.temperatura);
+                    document.getElementById('val-temp').innerText = data.temperatura.toFixed(1);
+                }
             }
-        }, 3000);
-
+        });
     </script>
 </body>
 </html>
