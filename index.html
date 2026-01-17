@@ -2,32 +2,50 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud</title>
+    <title>Capellán Cloud | Dashboard</title>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; }
-        .card { background: #1e293b; border-radius: 15px; padding: 20px; width: 500px; margin: 20px auto; border: 2px solid #3b82f6; }
-        .video-box { width: 100%; height: 350px; background: #000; margin-top: 15px; border-radius: 10px; overflow: hidden; }
-        img { width: 100%; height: 100%; object-fit: contain; }
-        .btn { background: #22c55e; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        .video-box { width: 600px; height: 350px; background: #000; margin: 20px auto; border: 3px solid #3b82f6; border-radius: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;}
+        img { width: 100%; height: 100%; object-fit: contain; display: none; }
+        .btn { background: #22c55e; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .status { margin-top: 10px; font-size: 14px; color: #94a3b8; }
     </style>
 </head>
 <body>
     <h1>CAPELLÁN CLOUD 🚦</h1>
-    <button class="btn" onclick="iniciar()">CONECTAR VIDEO</button>
-    <p id="status">Estado: Desconectado</p>
-    
-    <div class="card">
-        <div class="video-box">
-            <img id="foscam" src="">
-        </div>
+    <button class="btn" onclick="iniciar()">ACTIVAR VIDEO</button>
+    <div class="video-box">
+        <img id="foscam" src="">
+        <div id="loading">Esperando señal del Proxy...</div>
     </div>
+    <p id="debug-info" class="status">Estado: Listo para conectar</p>
 
     <script>
         const PROXY = "http://192.168.2.208:9005/stream-galpon";
+
         function iniciar() {
-            document.getElementById("status").innerText = "Conectando...";
+            const img = document.getElementById("foscam");
+            const debug = document.getElementById("debug-info");
+            const loading = document.getElementById("loading");
+
+            debug.innerText = "Intentando conectar al PC (192.168.2.208)...";
+
             setInterval(() => {
-                document.getElementById("foscam").src = PROXY + "?t=" + Date.now();
+                const testImg = new Image();
+                testImg.src = PROXY + "?t=" + Date.now();
+                
+                testImg.onload = () => {
+                    img.src = testImg.src;
+                    img.style.display = "block";
+                    loading.style.display = "none";
+                    debug.innerText = "✅ TRANSMITIENDO EN VIVO";
+                    debug.style.color = "#22c55e";
+                };
+
+                testImg.onerror = () => {
+                    debug.innerText = "❌ ERROR: El servidor Java no está entregando la imagen.";
+                    debug.style.color = "#ef4444";
+                };
             }, 1000);
         }
     </script>
