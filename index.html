@@ -17,7 +17,7 @@
         .val { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
         .cam-box { width: 100%; height: 320px; background: #000; border-radius: 15px; border: 3px solid var(--primary); display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #foscam-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
-        .btn-auth { background: var(--danger); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; }
+        .btn-auth { background: var(--danger); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 15px; }
         .ptz-btn { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin: 3px; width: 55px; font-size: 1.2rem; }
     </style>
 </head>
@@ -41,12 +41,12 @@
         </div>
 
         <div class="card" style="border-color: var(--primary);">
-            <button id="btn-play" class="btn-auth" onclick="activarVideo()">PASO 1: ACTIVAR VIDEO</button>
+            <button id="btn-play" class="btn-auth" onclick="activarVideo()">PASO 1: ABRIR PERMISO DE RED</button>
             <div class="cam-box">
                 <img id="foscam-stream" src="">
                 <div id="load-txt" style="color: #64748b;">Esperando cámara...</div>
             </div>
-            <div style="margin-top:10px;">
+            <div style="margin-top:15px;">
                 <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
                 <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
                 <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
@@ -58,8 +58,8 @@
 
     <script>
         const USR = "alex", PWD = "F7324088";
-        // Usamos puerto 88 que es el que vimos en tu captura de "Result 0"
-        const base = `http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
+        // FORZAMOS HTTP (no https) para evitar el error de protocolo
+        const base = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=" + USR + "&pwd=" + PWD;
 
         firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
         const db = firebase.database();
@@ -70,26 +70,32 @@
         gNH3.maxValue = 100; gTemp.maxValue = 50;
 
         function activarVideo() {
-            // Abrimos ventana para autorizar la IP en Chrome
-            window.open(base + "&cmd=getDevState", "auth", "width=300,height=200");
+            // Abrimos la URL en una pestaña nueva para que tú puedas autorizarla manualmente
+            window.open(base + "&cmd=getDevState", "_blank");
             
+            alert("PASO IMPORTANTE:\n1. Se abrirá una pestaña nueva.\n2. Asegúrate de que el sitio cargue (aunque sea solo texto).\n3. Si Chrome te da error, fíjate en la barra de direcciones que diga HTTP y NO HTTPS.");
+
             setTimeout(() => {
                 const img = document.getElementById("foscam-stream");
                 const btn = document.getElementById("btn-play");
                 img.style.display = "block";
                 document.getElementById("load-txt").style.display = "none";
                 
-                // Iniciamos modo ráfaga (fotos cada segundo)
+                // Modo ráfaga para evitar bloqueos de video
                 setInterval(() => {
                     img.src = base + "&cmd=snapShot&_ts=" + Date.now();
                 }, 1000);
 
                 btn.innerText = "✅ VIDEO ACTIVADO";
                 btn.style.background = "#22c55e";
-            }, 2000);
+            }, 3000);
         }
 
-        function mover(cmd) { fetch(base + "&cmd=" + cmd, {mode: 'no-cors'}).catch(() => {}); }
+        function mover(cmd) { 
+            // Usamos una técnica de imagen invisible para enviar comandos sin que Chrome los bloquee
+            const i = new Image();
+            i.src = base + "&cmd=" + cmd + "&_ts=" + Date.now();
+        }
 
         db.ref("galpon/actual").on("value", snap => {
             const d = snap.val();
