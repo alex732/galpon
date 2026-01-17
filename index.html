@@ -2,51 +2,58 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Dashboard</title>
+    <title>Capellán Cloud | Dashboard Final</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; }
-        .cam-box { width: 600px; height: 350px; background: #000; margin: 20px auto; border: 3px solid #3b82f6; border-radius: 15px; position: relative; overflow: hidden; }
-        #video-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
-        .btn { background: #22c55e; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        .status-box { margin-top: 10px; color: #94a3b8; font-size: 0.9rem; }
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1000px; margin: auto; }
+        .card { background: #1e293b; border-radius: 15px; padding: 20px; border: 2px solid #334155; }
+        .video-container { width: 100%; height: 350px; background: #000; border-radius: 10px; overflow: hidden; border: 2px solid #3b82f6; }
+        img { width: 100%; height: 100%; object-fit: contain; }
+        .val { font-size: 2.5rem; color: #3b82f6; font-weight: bold; }
     </style>
 </head>
 <body>
     <h1>CAPELLÁN CLOUD 🚦</h1>
-    <button class="btn" onclick="iniciarConexion()">CONECTAR VIDEO</button>
-    
-    <div class="cam-box">
-        <img id="video-stream" src="">
-        <div id="msg" style="margin-top:150px">Cámara Offline</div>
+    <div class="dashboard">
+        <div class="card">
+            <h3>AMONÍACO</h3>
+            <div id="nh3-val" class="val">--</div>
+            <p>PPM</p>
+        </div>
+        <div class="card">
+            <h3>TEMPERATURA</h3>
+            <div id="temp-val" class="val">--</div>
+            <p>°C</p>
+        </div>
+        <div class="card" style="grid-column: span 1;">
+            <h3>VISTA EN VIVO</h3>
+            <div class="video-container">
+                <img id="foscam-video" src="">
+            </div>
+        </div>
     </div>
-    <div id="debug" class="status-box">Estado: Esperando...</div>
 
     <script>
-        const PROXY = "http://192.168.2.208:8080/stream-galpon";
+        const PROXY_URL = "http://192.168.2.208:8080/stream-galpon";
+        
+        // Iniciar Video
+        setInterval(() => {
+            document.getElementById("foscam-video").src = PROXY_URL + "?cache=" + Date.now();
+        }, 1000);
 
-        function iniciarConexion() {
-            const img = document.getElementById("video-stream");
-            const debug = document.getElementById("debug");
-            const msg = document.getElementById("msg");
+        // Firebase
+        firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
+        const db = firebase.database();
 
-            debug.innerText = "Estado: Intentando conectar a " + PROXY;
-
-            // Intentamos una petición de prueba
-            fetch(PROXY, { mode: 'cors' })
-                .then(res => {
-                    if(res.ok) {
-                        debug.innerText = "Estado: ¡Conexión exitosa!";
-                        img.style.display = "block";
-                        msg.style.display = "none";
-                        setInterval(() => {
-                            img.src = PROXY + "?t=" + Date.now();
-                        }, 1000);
-                    }
-                })
-                .catch(err => {
-                    debug.innerHTML = "BLOQUEO DE CHROME DETECTADO.<br>Por favor, abre <a href='"+PROXY+"' target='_blank' style='color:#3b82f6'>ESTE LINK</a> y dale a 'Aceptar/Continuar' si sale aviso de seguridad. Luego vuelve aquí.";
-                });
-        }
+        db.ref("galpon/actual").on("value", snap => {
+            const d = snap.val();
+            if(d) {
+                document.getElementById("nh3-val").innerText = d.nh3_ppm;
+                document.getElementById("temp-val").innerText = d.temperatura;
+            }
+        });
     </script>
 </body>
 </html>
