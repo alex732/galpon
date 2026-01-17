@@ -3,67 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Control Total</title>
+    <title>Capellán Cloud | Control Semáforo</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --text: #f8fafc; }
+        :root { 
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
+            --safe: #22c55e; --warn: #eab308; --danger: #ef4444; --primary: #3b82f6;
+        }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; text-align: center; }
-        .val { font-size: 2.8rem; font-weight: bold; margin: 10px 0; }
-        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 225px; }
-        .log-container { background: #020617; border-radius: 10px; padding: 15px; height: 120px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; text-align: left; margin: 20px auto; max-width: 1200px; border: 1px solid #1e293b; }
-        .chart-container { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; margin: 20px auto; max-width: 1200px; }
-        .rain-alert { color: #60a5fa; font-weight: bold; animation: pulse 1s infinite; }
-        @keyframes pulse { 50% { opacity: 0.5; } }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        
+        /* Efecto Semáforo */
+        .card { 
+            background: var(--card); border-radius: 15px; padding: 20px; 
+            border: 4px solid #334155; text-align: center; transition: 0.5s;
+        }
+        .status-safe { border-color: var(--safe); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }
+        .status-warn { border-color: var(--warn); box-shadow: 0 0 15px rgba(234, 179, 8, 0.2); }
+        .status-danger { border-color: var(--danger); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+
+        .val { font-size: 3rem; font-weight: bold; margin: 5px 0; }
+        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 200px; }
+        
+        /* Tabla e Historial */
+        .history-container { max-width: 1200px; margin: 20px auto; background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #334155; }
+        th { background-color: #0f172a; color: var(--primary); }
+
+        .log-box { background: #020617; border-radius: 10px; padding: 15px; height: 100px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; text-align: left; border: 1px solid #1e293b; margin: 20px auto; max-width: 1200px; }
+        .rain-alert { color: #60a5fa; font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align:center;">CAPELLÁN CLOUD 🐔</h1>
-    <div id="status" style="text-align:center; margin-bottom:20px; font-weight:bold; color:var(--danger);">● BUSCANDO SENSORES...</div>
+    <h1 style="text-align:center; color: var(--primary);">CAPELLÁN CLOUD 🚦</h1>
+    <div id="status" style="text-align:center; margin-bottom:20px; font-weight:bold;">CONECTANDO...</div>
 
-    <div class="dashboard-grid">
-        <div class="card">
+    <div class="grid">
+        <div id="card-nh3" class="card">
             <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3"></canvas>
-            <div id="val-nh3" class="val" style="color:var(--danger)">0.0</div>
-            <span>PPM</span>
+            <div id="val-nh3" class="val">--</div>
+            <div id="label-nh3">Buscando...</div>
         </div>
 
-        <div class="card">
+        <div id="card-temp" class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp"></canvas>
-            <div id="val-temp" class="val" style="color:var(--success)">0.0</div>
-            <span>°C</span>
+            <div id="val-temp" class="val">--</div>
+            <div id="label-temp">Buscando...</div>
         </div>
 
-        <div class="card">
-            <h3>AMBIENTE</h3>
-            <div style="color: #94a3b8;">HUMEDAD</div>
-            <div id="val-hum" class="val" style="color:var(--primary)">0%</div>
+        <div id="card-hum" class="card">
+            <h3>HUMEDAD / CLIMA</h3>
+            <div id="val-hum" class="val">--%</div>
             <hr style="border:0; border-top:1px solid #334155; margin:15px 0;">
-            <div id="val-lluvia" style="font-size: 1.3rem;">☀️ Despejado</div>
+            <div id="val-lluvia" style="font-size: 1.2rem;">☀️ Despejado</div>
         </div>
 
-        <div class="card">
-            <h3>CÁMARA FOSCAM</h3>
+        <div class="card" style="border-color: var(--primary);">
+            <h3>VISTA EN VIVO</h3>
             <img id="foscam-stream" src="" class="cam-frame">
-            <p style="font-size:0.7rem; color:#64748b; margin-top:5px;">Habilite "Contenido no seguro" si no ve imagen.</p>
+            <p style="font-size:0.65rem; color:#64748b; margin-top:5px;">Habilite "Contenido no seguro" en el candado.</p>
         </div>
     </div>
 
-    <div class="chart-container">
-        <h3>HISTORIAL DE SENSORES (Últimos minutos)</h3>
-        <canvas id="historyChart" height="100"></canvas>
+    <div class="history-container">
+        <h3 style="margin-top:0; color:var(--primary);">HISTORIAL DE CAMBIOS</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Hora</th>
+                    <th>NH3 (PPM)</th>
+                    <th>Temp (°C)</th>
+                    <th>Humedad (%)</th>
+                    <th>Lluvia</th>
+                </tr>
+            </thead>
+            <tbody id="history-body"></tbody>
+        </table>
     </div>
 
-    <div class="log-container" id="logs">> Sistema iniciado...</div>
+    <div class="log-box" id="logs">> Monitor activo...</div>
 
     <script>
         window.onload = function() {
@@ -73,66 +100,71 @@
             const db = firebase.database();
 
             // 2. GAUGES
-            const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
+            const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#eab308", min: 20, max: 40}, {strokeColor: "#ef4444", min: 40, max: 100}] };
             const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts); gNH3.maxValue = 100;
             const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts); gTemp.maxValue = 50;
 
-            // 3. CHART (HISTORIAL)
-            const ctx = document.getElementById('historyChart').getContext('2d');
-            const historyChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        { label: 'NH3 (PPM)', data: [], borderColor: '#ef4444', tension: 0.4 },
-                        { label: 'Temp (°C)', data: [], borderColor: '#22c55e', tension: 0.4 }
-                    ]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
+            // 3. LOGICA SEMÁFORO
+            function updateTrafficLight(id, value, type) {
+                const card = document.getElementById('card-' + id);
+                const label = document.getElementById('label-' + id);
+                card.classList.remove('status-safe', 'status-warn', 'status-danger');
+                
+                let status = '';
+                if (type === 'nh3') {
+                    if (value < 20) { card.classList.add('status-safe'); status = '✅ NIVEL SEGURO'; }
+                    else if (value < 40) { card.classList.add('status-warn'); status = '⚠️ ATENCIÓN'; }
+                    else { card.classList.add('status-danger'); status = '🚨 PELIGRO CRÍTICO'; }
+                } else if (type === 'temp') {
+                    if (value >= 20 && value <= 30) { card.classList.add('status-safe'); status = '✅ ÓPTIMA'; }
+                    else if (value > 30 && value < 35) { card.classList.add('status-warn'); status = '⚠️ CALOR'; }
+                    else { card.classList.add('status-danger'); status = '🚨 ESTRÉS TÉRMICO'; }
+                }
+                label.innerText = status;
+                label.style.color = getComputedStyle(card).borderColor;
+            }
 
             // 4. ESCUCHAR FIREBASE
             db.ref('galpon/actual').on('value', (snapshot) => {
                 const data = snapshot.val();
                 if(data) {
                     document.getElementById('status').innerText = "● GALPÓN CONECTADO";
-                    document.getElementById('status').style.color = "var(--success)";
+                    document.getElementById('status').style.color = "#22c55e";
 
-                    // Actualizar Valores
-                    if(data.nh3_ppm !== undefined) {
-                        gNH3.set(data.nh3_ppm);
-                        document.getElementById('val-nh3').innerText = data.nh3_ppm;
-                    }
-                    if(data.temperatura !== undefined) {
-                        gTemp.set(data.temperatura);
-                        document.getElementById('val-temp').innerText = data.temperatura + "°C";
-                    }
-                    if(data.humedad !== undefined) {
-                        document.getElementById('val-hum').innerText = data.humedad + "%";
-                    }
+                    const nh3 = data.nh3_ppm || 0;
+                    const temp = data.temperatura || 0;
+                    const hum = data.humedad || 0;
+                    const lluvia = data.lluvia || "NO";
 
-                    // Lluvia
+                    // Actualizar Semáforos
+                    gNH3.set(nh3);
+                    document.getElementById('val-nh3').innerText = nh3;
+                    updateTrafficLight('nh3', nh3, 'nh3');
+
+                    gTemp.set(temp);
+                    document.getElementById('val-temp').innerText = temp + "°C";
+                    updateTrafficLight('temp', temp, 'temp');
+
+                    // Humedad y Lluvia
+                    document.getElementById('val-hum').innerText = hum + "%";
                     const rainBox = document.getElementById('val-lluvia');
-                    if(data.lluvia === "SI") {
-                        rainBox.innerHTML = "<span class='rain-alert'>🌧️ ¡ESTÁ LLOVIENDO!</span>";
-                        addLog("🌧️ Alerta: Lluvia detectada");
+                    if(lluvia === "SI") {
+                        rainBox.innerHTML = "<span class='rain-alert'>🌧️ LLUVIA DETECTADA</span>";
+                        addLog("Alerta: Inicio de lluvia");
                     } else {
                         rainBox.innerText = "☀️ Despejado";
                     }
 
-                    // Actualizar Gráfica
-                    const now = new Date().toLocaleTimeString();
-                    if (historyChart.data.labels.length > 10) {
-                        historyChart.data.labels.shift();
-                        historyChart.data.datasets[0].data.shift();
-                        historyChart.data.datasets[1].data.shift();
-                    }
-                    historyChart.data.labels.push(now);
-                    historyChart.data.datasets[0].data.push(data.nh3_ppm);
-                    historyChart.data.datasets[1].data.push(data.temperatura);
-                    historyChart.update();
+                    updateTable(nh3, temp, hum, lluvia);
                 }
             });
+
+            function updateTable(nh3, temp, hum, rain) {
+                const tbody = document.getElementById('history-body');
+                const row = `<tr><td>${new Date().toLocaleTimeString()}</td><td>${nh3}</td><td>${temp}°C</td><td>${hum}%</td><td>${rain}</td></tr>`;
+                tbody.insertAdjacentHTML('afterbegin', row);
+                if (tbody.rows.length > 10) tbody.deleteRow(10);
+            }
 
             function addLog(msj) {
                 const logs = document.getElementById('logs');
