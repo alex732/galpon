@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Final</title>
+    <title>Capellán Cloud | Control Total</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
@@ -10,44 +10,48 @@
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; text-align: center; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
-        .card { background: var(--card); border-radius: 20px; padding: 25px; border: 4px solid #334155; }
-        .val { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
-        .cam-box { width: 100%; border-radius: 15px; border: 3px solid var(--primary); background: #000; height: 300px; overflow: hidden; position: relative; }
-        .cam-frame { width: 100%; height: 100%; object-fit: contain; }
-        .btn-unlock { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 10px; width: 100%; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        .ptz-btn { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin: 3px; width: 55px; }
+        .card { background: var(--card); border-radius: 20px; padding: 25px; border: 4px solid #334155; position: relative; }
+        .val { font-size: 3.8rem; font-weight: bold; margin: 10px 0; }
+        
+        /* Contenedor de Video Mejorado */
+        .cam-container { width: 100%; border-radius: 15px; border: 3px solid var(--primary); background: #000; height: 350px; overflow: hidden; position: relative; }
+        .cam-iframe { width: 100%; height: 100%; border: none; }
+        
+        .btn-fix { background: var(--danger); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 15px; font-size: 1rem; }
+        .btn-ptz { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin: 3px; width: 55px; }
     </style>
 </head>
 <body>
 
-    <h1 style="color: var(--primary);">CONTROL GALPÓN CAPELLÁN 🚦</h1>
+    <h1 style="color: var(--primary); margin-bottom: 30px;">CAPELLÁN CLOUD 🚦</h1>
 
     <div class="grid">
         <div class="card">
             <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3" style="width:100%"></canvas>
             <div id="val-nh3" class="val">--</div>
+            <p id="st-nh3">CONECTANDO...</p>
         </div>
 
         <div class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp" style="width:100%"></canvas>
             <div id="val-temp" class="val">--</div>
+            <p id="st-temp">CONECTANDO...</p>
         </div>
 
         <div class="card" style="border-color: var(--primary);">
-            <h3>VISTA EN VIVO</h3>
-            <button class="btn-unlock" onclick="desbloquear()">⚠️ CLIC AQUÍ PARA DESBLOQUEAR VIDEO</button>
-            <div class="cam-box">
-                <img id="foscam-img" src="" class="cam-frame">
+            <button class="btn-fix" onclick="activarCamara()">⚠️ PASO 1: HABILITAR VIDEO EN CHROME</button>
+            <div class="cam-container" id="cam-box">
+                <div style="color:white; padding-top: 150px;">Esperando Autorización...</div>
             </div>
+            
             <div style="margin-top: 15px;">
-                <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
-                <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
-                <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
+                <button class="btn-ptz" onclick="mover('ptzMoveUp')">▲</button><br>
+                <button class="btn-ptz" onclick="mover('ptzMoveLeft')">◄</button>
+                <button class="btn-ptz" onclick="mover('ptzReset')">🏠</button>
+                <button class="btn-ptz" onclick="mover('ptzMoveRight')">►</button><br>
+                <button class="btn-ptz" onclick="mover('ptzMoveDown')">▼</button>
             </div>
         </div>
     </div>
@@ -58,29 +62,27 @@
         const PWD = "F7324088";
         const base = `http://${IP}/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
 
-        function desbloquear() {
-            // Abrimos la cámara en una ventana aparte para que Chrome autorice la IP local
-            const win = window.open(base + "&cmd=getDevState", "desbloqueo", "width=400,height=300");
-            alert("PASO FINAL: Si ves una pantalla blanca o con letras, NO LA CIERRES. Vuelve aquí y espera 5 segundos.");
+        // Método para forzar a Chrome a aceptar la conexión mixta
+        function activarCamara() {
+            // Abrimos la URL de la cámara en una ventana aparte para que el usuario acepte el "Sitio no seguro"
+            const authUrl = `${base}&cmd=getDevState`;
+            window.open(authUrl, "auth", "width=400,height=300");
             
+            alert("Se abrió una ventana de la cámara. Si ves 'La conexión no es privada', pulsa OPCIONES AVANZADAS y luego ACCEDER A 192.168.2.193. ¡No cierres esa ventana!");
+
             setTimeout(() => {
-                iniciarVideo();
-            }, 5000);
+                const streamUrl = `${base}&cmd=getLiveStream&type=1`;
+                document.getElementById('cam-box').innerHTML = `<img src="${streamUrl}" class="cam-frame" style="width:100%; height:100%; object-fit:contain;">`;
+            }, 3000);
         }
 
         function mover(cmd) { fetch(`${base}&cmd=${cmd}`).catch(e => {}); }
-
-        function iniciarVideo() {
-            // Usamos snapshots para evitar que el motor de video de Chrome bloquee el flujo
-            setInterval(() => {
-                document.getElementById('foscam-img').src = `${base}&cmd=snapShot&_ts=${new Date().getTime()}`;
-            }, 1000);
-        }
 
         window.onload = function() {
             firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
             const db = firebase.database();
 
+            // Gauges
             const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions({angle:-0.2,lineWidth:0.2,pointer:{length:0.6,color:'#FFF'},staticZones:[{strokeColor:"#22c55e",min:0,max:20},{strokeColor:"#ef4444",min:20,max:100}]});
             const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions({angle:-0.2,lineWidth:0.2,pointer:{length:0.6,color:'#FFF'},staticZones:[{strokeColor:"#22c55e",min:0,max:20},{strokeColor:"#ef4444",min:20,max:100}]});
             gNH3.maxValue = 100; gTemp.maxValue = 50;
@@ -90,6 +92,8 @@
                 if(d) {
                     gNH3.set(d.nh3_ppm); document.getElementById('val-nh3').innerText = d.nh3_ppm;
                     gTemp.set(d.temperatura); document.getElementById('val-temp').innerText = d.temperatura + "°C";
+                    document.getElementById('st-nh3').innerText = d.nh3_ppm > 20 ? "⚠️ PELIGRO" : "✅ NORMAL";
+                    document.getElementById('st-temp').innerText = d.temperatura > 31 ? "⚠️ CALOR" : "✅ NORMAL";
                 }
             });
         };
