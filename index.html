@@ -1,50 +1,56 @@
-package com; // Esta línea debe coincidir con la carpeta
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Capellán Cloud | Panel de Control</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        .card { background: #1e293b; border-radius: 15px; padding: 20px; max-width: 650px; margin: auto; border: 2px solid #3b82f6; }
+        .video-box { width: 100%; height: 400px; background: #000; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        img { width: 100%; height: 100%; object-fit: contain; display: none; }
+        .btn { background: #22c55e; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
+        .status { color: #94a3b8; font-size: 13px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>CAPELLÁN CLOUD 🚦</h1>
+    <div class="card">
+        <button class="btn" onclick="iniciarVideo()">CONECTAR CÁMARA</button>
+        <div class="video-box">
+            <img id="stream" src="">
+            <p id="msg">Esperando conexión...</p>
+        </div>
+        <p id="debug" class="status">Estado: Servidor Java en puerto 9005</p>
+    </div>
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.web.bind.annotation.*;
-import javax.servlet.http.HttpServletResponse;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Collections;
+    <script>
+        // USA TU IP LOCAL
+        const PROXY_URL = "http://192.168.2.208:9005/stream-galpon";
 
-@SpringBootApplication
-@RestController
-@CrossOrigin(origins = "*")
-public class GalponProxyApplication {
+        function iniciarVideo() {
+            const img = document.getElementById("stream");
+            const msg = document.getElementById("msg");
+            const debug = document.getElementById("debug");
 
-    public static void main(String[] args) {
-        SpringApplication app = new SpringApplication(GalponProxyApplication.class);
-        app.setDefaultProperties(Collections.singletonMap("server.port", "9005"));
-        app.run(args);
-    }
-
-    @GetMapping("/stream-galpon")
-    public void proxy(HttpServletResponse response) {
-        HttpURLConnection conn = null;
-        try {
-            response.setHeader("Access-Control-Allow-Origin", "*");
-            response.setContentType("image/jpeg");
-
-            // URL de tu cámara Foscam
-            String camUrl = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=alex&pwd=F7324088&cmd=snapShot&_ts=" + System.currentTimeMillis();
+            msg.innerText = "Cargando imagen...";
             
-            URL url = new URL(camUrl);
-            conn = (HttpURLConnection) url.openConnection();
-            conn.setConnectTimeout(3000);
+            // Intentar cargar una imagen cada 1.2 segundos
+            setInterval(() => {
+                const tmpImg = new Image();
+                tmpImg.src = PROXY_URL + "?t=" + Date.now();
+                
+                tmpImg.onload = () => {
+                    img.src = tmpImg.src;
+                    img.style.display = "block";
+                    msg.style.display = "none";
+                    debug.innerText = "✅ Transmisión activa";
+                };
 
-            if (conn.getResponseCode() == 200) {
-                try (InputStream in = conn.getInputStream()) {
-                    in.transferTo(response.getOutputStream());
-                }
-            } else {
-                System.out.println("Error de cámara: " + conn.getResponseCode());
-            }
-        } catch (Exception e) {
-            System.out.println("Error de conexión: " + e.getMessage());
-        } finally {
-            if (conn != null) conn.disconnect();
+                tmpImg.onerror = () => {
+                    debug.innerText = "❌ Bloqueo de seguridad o Servidor apagado.";
+                };
+            }, 1200);
         }
-    }
-}
+    </script>
+</body>
+</html>
