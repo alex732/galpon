@@ -3,53 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Dashboard</title>
+    <title>Capellán Cloud | Control Total</title>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
 
     <style>
-        :root {
-            --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
-            --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444;
-        }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg); color: var(--text);
-            margin: 0; padding: 20px; text-align: center;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px; max-width: 1200px; margin: 20px auto;
-        }
-        .card {
-            background: var(--card); border-radius: 20px;
-            padding: 20px; border: 5px solid #334155;
-            display: flex; flex-direction: column; align-items: center;
-        }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 20px auto; }
+        .card { background: var(--card); border-radius: 20px; padding: 20px; border: 5px solid #334155; }
         .val { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
-        
-        .cam-box {
-            width: 100%; height: 350px; background: #000;
-            border-radius: 15px; border: 3px solid var(--primary);
-            display: flex; align-items: center; justify-content: center;
-            overflow: hidden; position: relative;
-        }
+        .cam-box { width: 100%; height: 320px; background: #000; border-radius: 15px; border: 3px solid var(--primary); display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #foscam-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
-        
-        .btn-auth {
-            background: var(--danger); color: white; border: none;
-            padding: 15px; border-radius: 10px; cursor: pointer;
-            font-weight: bold; width: 100%; margin-bottom: 10px;
-        }
-        .ptz-btn {
-            background: #334155; color: white; border: none;
-            padding: 12px; border-radius: 8px; cursor: pointer;
-            margin: 3px; width: 55px; font-size: 1.2rem;
-        }
+        .btn-auth { background: var(--danger); color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; }
+        .ptz-btn { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin: 3px; width: 55px; font-size: 1.2rem; }
     </style>
 </head>
 <body>
@@ -59,16 +28,16 @@
     <div class="grid">
         <div id="card-nh3" class="card">
             <h3>AMONÍACO (NH3)</h3>
-            <canvas id="gauge-nh3" style="width: 250px; height: 150px;"></canvas>
+            <canvas id="gauge-nh3" style="width: 100%; height: 150px;"></canvas>
             <div id="val-nh3" class="val">--</div>
-            <p id="label-nh3">CONECTANDO...</p>
+            <p id="label-nh3" style="font-weight: bold;">--</p>
         </div>
 
         <div id="card-temp" class="card">
             <h3>TEMPERATURA</h3>
-            <canvas id="gauge-temp" style="width: 250px; height: 150px;"></canvas>
+            <canvas id="gauge-temp" style="width: 100%; height: 150px;"></canvas>
             <div id="val-temp" class="val">--</div>
-            <p id="label-temp">CONECTANDO...</p>
+            <p id="label-temp" style="font-weight: bold;">--</p>
         </div>
 
         <div class="card" style="border-color: var(--primary);">
@@ -88,40 +57,36 @@
     </div>
 
     <script>
-        // Datos de tus capturas
-        const USR = "alex";
-        const PWD = "F7324088";
-        // Intentamos usar HTTPS (Puerto 443) para evitar bloqueos de Chrome
-        const base = "https://192.168.2.193:443/cgi-bin/CGIProxy.fcgi?usr=" + USR + "&pwd=" + PWD;
+        const USR = "alex", PWD = "F7324088";
+        // Usamos puerto 88 que es el que vimos en tu captura de "Result 0"
+        const base = `http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
 
         firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
         const db = firebase.database();
 
-        // Inicializar Gauges
         const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: "#fff" }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
         const gNH3 = new Gauge(document.getElementById("gauge-nh3")).setOptions(gOpts);
         const gTemp = new Gauge(document.getElementById("gauge-temp")).setOptions(gOpts);
         gNH3.maxValue = 100; gTemp.maxValue = 50;
 
         function activarVideo() {
-            // Abrir ventana para que el navegador acepte el certificado HTTPS local
+            // Abrimos ventana para autorizar la IP en Chrome
             window.open(base + "&cmd=getDevState", "auth", "width=300,height=200");
             
             setTimeout(() => {
                 const img = document.getElementById("foscam-stream");
                 const btn = document.getElementById("btn-play");
-                // Forzar modo snapshot si el stream falla
-                img.src = base + "&cmd=snapShot&_ts=" + Date.now();
                 img.style.display = "block";
                 document.getElementById("load-txt").style.display = "none";
                 
+                // Iniciamos modo ráfaga (fotos cada segundo)
                 setInterval(() => {
                     img.src = base + "&cmd=snapShot&_ts=" + Date.now();
                 }, 1000);
 
                 btn.innerText = "✅ VIDEO ACTIVADO";
                 btn.style.background = "#22c55e";
-            }, 3000);
+            }, 2000);
         }
 
         function mover(cmd) { fetch(base + "&cmd=" + cmd, {mode: 'no-cors'}).catch(() => {}); }
@@ -133,11 +98,13 @@
                 gNH3.set(d.nh3_ppm);
                 document.getElementById("val-nh3").innerText = d.nh3_ppm + " ppm";
                 document.getElementById("label-nh3").innerText = d.nh3_ppm > 20 ? "🚨 PELIGRO" : "✅ ÓPTIMO";
+                document.getElementById("label-nh3").style.color = d.nh3_ppm > 20 ? "#ef4444" : "#22c55e";
             }
             if(d.temperatura != null) {
                 gTemp.set(d.temperatura);
                 document.getElementById("val-temp").innerText = d.temperatura + "°C";
                 document.getElementById("label-temp").innerText = d.temperatura > 31 ? "🚨 CALOR" : "✅ ÓPTIMO";
+                document.getElementById("label-temp").style.color = d.temperatura > 31 ? "#ef4444" : "#22c55e";
             }
         });
     </script>
