@@ -1,11 +1,126 @@
-/* ================= CAMARA ================= */
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Capellán Cloud | Dashboard Final 2026</title>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
+            --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; --warning: #f59e0b;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg); color: var(--text);
+            margin: 0; padding: 20px; text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px; max-width: 1200px; margin: auto;
+        }
+        .card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 25px;
+            border: 5px solid #334155;
+            transition: border-color 0.5s ease;
+        }
+        .val {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        /* Video */
+        .cam-container {
+            width: 100%; height: 350px;
+            border-radius: 15px;
+            border: 3px solid var(--primary);
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        #foscam-stream {
+            width: 100%; height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+        .btn-auth {
+            background: var(--danger);
+            color: white; border: none; padding: 15px;
+            border-radius: 10px; cursor: pointer;
+            font-weight: bold; width: 100%; margin-bottom: 15px;
+        }
+        .ptz-btn {
+            background: #334155; color: white; border: none;
+            padding: 12px; border-radius: 8px; cursor: pointer;
+            margin: 3px; width: 55px; font-size: 1.2rem;
+        }
+        .ptz-btn:active { background: var(--primary); }
+    </style>
+</head>
+
+<body>
+
+<h1 style="color:var(--primary); text-transform: uppercase; letter-spacing: 2px;">Capellán Cloud 🚦</h1>
+
+<div class="grid">
+
+    <div id="card-nh3" class="card">
+        <h3>AMONÍACO (NH₃)</h3>
+        <canvas id="gauge-nh3" style="width: 100%; max-width: 250px;"></canvas>
+        <div id="val-nh3" class="val">--</div>
+        <p id="label-nh3" style="font-weight: bold;">CONECTANDO...</p>
+    </div>
+
+    <div id="card-temp" class="card">
+        <h3>TEMPERATURA</h3>
+        <canvas id="gauge-temp" style="width: 100%; max-width: 250px;"></canvas>
+        <div id="val-temp" class="val">--</div>
+        <p id="label-temp" style="font-weight: bold;">CONECTANDO...</p>
+    </div>
+
+    <div class="card" style="border-color:var(--primary)">
+        <button id="btn-play" class="btn-auth" onclick="activarVideo()">
+            PASO 1: ACTIVAR VIDEO (INTERACCIÓN CHROME)
+        </button>
+
+        <div class="cam-container">
+            <img id="foscam-stream" src="about:blank">
+            <div id="loading-text" style="color:#64748b">
+                Esperando autorización de cámara...
+            </div>
+        </div>
+
+        <div style="margin-top:15px">
+            <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
+            <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
+            <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
+            <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
+            <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+/* ================= CONFIGURACIÓN CÁMARA ================= */
 const IP  = "192.168.2.193:88";
 const USR = "alex";
 const PWD = "F7324088";
 const base = `http://${IP}/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
 
 function activarVideo(){
-    // Paso 1: Abrimos la ventana que ya sabemos que rompe el bloqueo
+    // Abrimos ventana de autorización para romper el bloqueo de IP Privada
     window.open(base+"&cmd=getDevState","auth","width=300,height=200");
     
     setTimeout(()=>{
@@ -13,26 +128,25 @@ function activarVideo(){
         const btn = document.getElementById("btn-play");
         const loading = document.getElementById("loading-text");
 
-        // Intentamos el flujo MJPEG estándar
-        const streamUrl = `${base}&cmd=getLiveStream&type=1&_ts=${Date.now()}`;
-        img.src = streamUrl;
+        // 1. Intentamos el Stream directo (MJPEG)
+        img.src = `${base}&cmd=getLiveStream&type=1&_ts=${Date.now()}`;
         img.style.display="block";
         loading.style.display="none";
         
-        // Verificamos si la imagen cargó realmente
         img.onload = () => {
             btn.innerText="✅ VIDEO CONECTADO";
             btn.style.background="#22c55e";
         };
 
-        // Si el stream falla, usamos el "Modo Ráfaga" (Snapshot cada segundo)
+        // 2. Si el Stream falla, Chrome nos obliga a usar el "Modo Ráfaga" (Snapshots)
         img.onerror = () => {
-            console.log("Stream bloqueado, iniciando modo ráfaga...");
+            console.warn("Stream bloqueado por Chrome. Iniciando modo ráfaga.");
+            btn.innerText="✅ MODO SEGURO (FOTOS)";
+            btn.style.background="#f59e0b";
+            
             setInterval(() => {
                 img.src = `${base}&cmd=snapShot&_ts=${Date.now()}`;
-            }, 1000);
-            btn.innerText="✅ MODO FOTO (CHROME SAFE)";
-            btn.style.background="#f59e0b"; // Naranja para avisar que es modo ráfaga
+            }, 1000); // Una foto por segundo
         };
     }, 2000);
 }
@@ -45,13 +159,13 @@ firebase.initializeApp({
 });
 const db = firebase.database();
 
-/* ================= GAUGES ================= */
+/* ================= GAUGES (MEDIDORES) ================= */
 const gOpts = {
     angle:-0.2, lineWidth:0.2,
-    pointer:{length:0.6,color:"#fff"},
+    pointer:{length:0.6, color:"#fff"},
     staticZones:[
-        {strokeColor:"#22c55e",min:0,max:20},
-        {strokeColor:"#ef4444",min:20,max:100}
+        {strokeColor:"#22c55e", min:0, max:20},  // Seguro
+        {strokeColor:"#ef4444", min:20, max:100} // Peligro
     ]
 };
 
@@ -59,25 +173,45 @@ const gNH3  = new Gauge(document.getElementById("gauge-nh3")).setOptions(gOpts);
 const gTemp = new Gauge(document.getElementById("gauge-temp")).setOptions(gOpts);
 gNH3.maxValue=100; gTemp.maxValue=50;
 
-function colorVal(el,val,limit){
-    el.style.color = val>limit ? "#ef4444" : "#22c55e";
-}
-
 db.ref("galpon/actual").on("value",snap=>{
     const d=snap.val();
     if(!d) return;
 
-    if(d.nh3_ppm!=null){
+    // Actualizar NH3
+    if(d.nh3_ppm != null){
         gNH3.set(d.nh3_ppm);
-        const e=document.getElementById("val-nh3");
-        e.innerText=d.nh3_ppm+" ppm";
-        colorVal(e,d.nh3_ppm,20);
+        const e = document.getElementById("val-nh3");
+        e.innerText = d.nh3_ppm + " ppm";
+        const card = document.getElementById("card-nh3");
+        const label = document.getElementById("label-nh3");
+        
+        if(d.nh3_ppm > 20){
+            card.style.borderColor = "#ef4444"; e.style.color = "#ef4444";
+            label.innerText = "🚨 PELIGRO AMONÍACO"; label.style.color = "#ef4444";
+        } else {
+            card.style.borderColor = "#22c55e"; e.style.color = "#22c55e";
+            label.innerText = "✅ NIVEL ÓPTIMO"; label.style.color = "#22c55e";
+        }
     }
 
-    if(d.temperatura!=null){
+    // Actualizar Temperatura
+    if(d.temperatura != null){
         gTemp.set(d.temperatura);
-        const eT=document.getElementById("val-temp");
-        eT.innerText=d.temperatura+"°C";
-        colorVal(eT,d.temperatura,31);
+        const eT = document.getElementById("val-temp");
+        eT.innerText = d.temperatura + "°C";
+        const cardT = document.getElementById("card-temp");
+        const labelT = document.getElementById("label-temp");
+
+        if(d.temperatura > 31){
+            cardT.style.borderColor = "#ef4444"; eT.style.color = "#ef4444";
+            labelT.innerText = "🚨 ALTA TEMPERATURA"; labelT.style.color = "#ef4444";
+        } else {
+            cardT.style.borderColor = "#22c55e"; eT.style.color = "#22c55e";
+            labelT.innerText = "✅ TEMPERATURA IDEAL"; labelT.style.color = "#22c55e";
+        }
     }
 });
+</script>
+
+</body>
+</html>
