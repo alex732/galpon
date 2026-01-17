@@ -2,75 +2,34 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Total</title>
+    <title>Capellán Cloud</title>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --green: #22c55e; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 1100px; margin: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 2px solid #334155; box-shadow: 0 10px 15px rgba(0,0,0,0.3); }
-        .val { font-size: 3rem; font-weight: bold; color: var(--blue); margin: 15px 0; }
-        .video-box { width: 100%; height: 400px; background: #000; border-radius: 10px; border: 2px solid var(--blue); overflow: hidden; }
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; }
+        .card { background: #1e293b; border-radius: 15px; padding: 20px; width: 500px; margin: 20px auto; border: 2px solid #3b82f6; }
+        .video-box { width: 100%; height: 350px; background: #000; margin-top: 15px; border-radius: 10px; overflow: hidden; }
         img { width: 100%; height: 100%; object-fit: contain; }
-        .btn-test { background: var(--green); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 20px; }
+        .btn { background: #22c55e; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-
-    <h1 style="letter-spacing: 3px; color: var(--blue);">CAPELLÁN CLOUD 🚦</h1>
-    <button class="btn-test" onclick="activarVideo()">INICIAR MONITOREO</button>
-    <p id="msg" style="font-size: 14px; color: #94a3b8;">Estado: Esperando comando...</p>
-
-    <div class="container">
-        <div class="card">
-            <h3>AMONÍACO (NH3)</h3>
-            <div id="nh3-val" class="val">--</div>
-            <p>Partes por millón (PPM)</p>
-        </div>
-
-        <div class="card">
-            <h3>TEMPERATURA</h3>
-            <div id="temp-val" class="val">--</div>
-            <p>Grados Celsius (°C)</p>
-        </div>
-
-        <div class="card" style="grid-column: span 1;">
-            <h3>VISTA GALPÓN</h3>
-            <div class="video-box">
-                <img id="foscam-img" src="">
-            </div>
+    <h1>CAPELLÁN CLOUD 🚦</h1>
+    <button class="btn" onclick="iniciar()">CONECTAR VIDEO</button>
+    <p id="status">Estado: Desconectado</p>
+    
+    <div class="card">
+        <div class="video-box">
+            <img id="foscam" src="">
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script>
         const PROXY = "http://192.168.2.208:9005/stream-galpon";
-        
-        function activarVideo() {
-            const img = document.getElementById("foscam-img");
-            const msg = document.getElementById("msg");
-            msg.innerText = "Conectando al Proxy en 192.168.2.208...";
-
+        function iniciar() {
+            document.getElementById("status").innerText = "Conectando...";
             setInterval(() => {
-                img.src = PROXY + "?cache=" + Date.now();
+                document.getElementById("foscam").src = PROXY + "?t=" + Date.now();
             }, 1000);
-            
-            img.onload = () => msg.innerText = "✅ Transmisión en Vivo Activa";
-            img.onerror = () => msg.innerText = "❌ Error: El Proxy no recibe imagen de la cámara.";
         }
-
-        // Firebase Realtime
-        const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        db.ref("galpon/actual").on("value", snap => {
-            const data = snap.val();
-            if(data) {
-                document.getElementById("nh3-val").innerText = data.nh3_ppm;
-                document.getElementById("temp-val").innerText = data.temperatura;
-            }
-        });
     </script>
 </body>
 </html>
