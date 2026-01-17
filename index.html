@@ -11,161 +11,72 @@
     
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --primary: #3b82f6;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --text-main: #f8fafc;
+            --bg-dark: #0f172a; --card-bg: #1e293b; --primary: #3b82f6;
+            --danger: #ef4444; --success: #22c55e; --text-main: #f8fafc;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-dark);
+            color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center;
         }
-
         .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px; width: 100%; max-width: 1200px;
         }
-
         .card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            border: 1px solid #334155;
+            background: var(--card-bg); border-radius: 15px; padding: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); text-align: center; border: 1px solid #334155;
         }
-
-        .stat-value {
-            font-size: 2.8rem;
-            font-weight: bold;
-            margin: 10px 0;
-            color: var(--primary);
-        }
-
-        .video-container {
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 2px solid var(--primary);
-            position: relative;
-            min-height: 225px;
-        }
-
-        #foscam-video {
-            width: 100%;
-            display: block;
-            background: #000;
-        }
-
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            width: 160px;
-            margin: 20px auto;
-        }
-
-        .btn-cam {
-            background: #334155;
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1.2rem;
-            transition: 0.2s;
-        }
-
+        .stat-value { font-size: 2.8rem; font-weight: bold; margin: 10px 0; color: var(--primary); }
+        .video-container { background: #000; border-radius: 12px; overflow: hidden; border: 2px solid var(--primary); min-height: 225px; }
+        #foscam-video { width: 100%; display: block; background: #000; }
+        .btn-cam { background: #334155; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 1.2rem; }
         .btn-cam:active { background: var(--primary); transform: scale(0.9); }
-
-        .log-container {
-            background: #020617;
-            border-radius: 8px;
-            padding: 12px;
-            height: 80px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-            text-align: left;
-            margin-top: 15px;
-            border: 1px solid #1e293b;
-        }
-
-        .status-bar {
-            font-size: 0.75rem;
-            padding: 5px 15px;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            background: #1e293b;
-        }
+        .log-container { background: #020617; border-radius: 8px; padding: 12px; height: 80px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; text-align: left; margin-top: 15px; }
+        .status-bar { font-size: 0.8rem; padding: 8px 20px; border-radius: 20px; margin-bottom: 20px; background: #1e293b; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <h1 style="margin: 10px 0 5px 0;">CAPELLÁN CLOUD 🐔</h1>
-    <div id="connection-status" class="status-bar" style="color: var(--danger);">● ESPERANDO FIREBASE...</div>
+    <div id="connection-status" class="status-bar" style="color: var(--danger);">● BUSCANDO DATOS DEL GALPÓN...</div>
 
     <div class="dashboard-grid">
-        
         <div class="card">
             <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3"></canvas>
-            <div id="val-nh3" class="stat-value">0.0</div>
-            <p style="color: #94a3b8;">Partes por millón (PPM)</p>
+            <div id="val-nh3" class="stat-value">--.-</div>
+            <p style="color: #94a3b8;">Nivel en PPM</p>
         </div>
 
         <div class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp"></canvas>
-            <div id="val-temp" class="stat-value">0.0</div>
+            <div id="val-temp" class="stat-value">--.-</div>
             <p style="color: #94a3b8;">Grados Celsius (°C)</p>
         </div>
 
         <div class="card">
-            <h3 style="margin-top:0;">MONITOR FOSCAM</h3>
+            <h3 style="margin-top:0;">VISTA EN VIVO</h3>
             <div class="video-container">
                 <img id="foscam-video" src="" alt="Cargando stream...">
             </div>
-
-            <div class="controls">
-                <div></div>
-                <button class="btn-cam" onmousedown="controlCam('ptzMoveUp')" onmouseup="controlCam('ptzStopRun')">▲</button>
-                <div></div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 160px; margin: 20px auto;">
+                <div></div><button class="btn-cam" onmousedown="controlCam('ptzMoveUp')" onmouseup="controlCam('ptzStopRun')">▲</button><div></div>
                 <button class="btn-cam" onmousedown="controlCam('ptzMoveLeft')" onmouseup="controlCam('ptzStopRun')">◀</button>
                 <button class="btn-cam" onclick="controlCam('ptzStopRun')" style="background:var(--danger)">■</button>
                 <button class="btn-cam" onmousedown="controlCam('ptzMoveRight')" onmouseup="controlCam('ptzStopRun')">▶</button>
-                <div></div>
-                <button class="btn-cam" onmousedown="controlCam('ptzMoveDown')" onmouseup="controlCam('ptzStopRun')">▼</button>
-                <div></div>
+                <div></div><button class="btn-cam" onmousedown="controlCam('ptzMoveDown')" onmouseup="controlCam('ptzStopRun')">▼</button><div></div>
             </div>
-
-            <div class="log-container" id="event-log">> Sistema listo. Revise permisos HTTP si no ve video.</div>
+            <div class="log-container" id="event-log">> Iniciando monitorización...</div>
         </div>
-
     </div>
 
     <script>
-        // 1. CONFIGURACIÓN FIREBASE (PEGAR AQUÍ TUS DATOS)
+        // 1. CONFIGURACIÓN FIREBASE ACTUALIZADA
         const firebaseConfig = {
-            apiKey: "AIzaSy...",
-            authDomain: "TU-PROYECTO.firebaseapp.com",
-            databaseURL: "https://TU-PROYECTO-default-rtdb.firebaseio.com",
-            projectId: "TU-PROYECTO",
-            storageBucket: "TU-PROYECTO.appspot.com",
-            messagingSenderId: "0000000000",
-            appId: "1:000000:web:00000"
+            databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com",
+            // Los campos de abajo no son críticos si la base de datos está abierta (rules: true)
+            projectId: "galpon-capellan", 
         };
         
         firebase.initializeApp(firebaseConfig);
@@ -176,58 +87,53 @@
         const cam_user = "admin";
         const cam_pass = "7324088";
 
-        // Iniciar Stream
+        // Cargar video (RECUERDA ACTIVAR PERMISOS EN EL CANDADO DEL NAVEGADOR)
         document.getElementById('foscam-video').src = `http://${cam_ip}/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=${cam_user}&pwd=${cam_pass}`;
 
         function controlCam(comando) {
-            const url = `http://${cam_ip}/cgi-bin/CGIProxy.fcgi?cmd=${comando}&usr=${cam_user}&pwd=${cam_pass}`;
-            fetch(url, { mode: 'no-cors' });
+            fetch(`http://${cam_ip}/cgi-bin/CGIProxy.fcgi?cmd=${comando}&usr=${cam_user}&pwd=${cam_pass}`, { mode: 'no-cors' });
         }
 
         // 3. CONFIGURACIÓN DE GAUGES
         const gaugeOpts = {
-            angle: -0.2, lineWidth: 0.2, radiusScale: 1,
-            pointer: { length: 0.6, strokeWidth: 0.035, color: '#FFFFFF' },
+            angle: -0.2, lineWidth: 0.2, radiusScale: 1, pointer: { length: 0.6, strokeWidth: 0.035, color: '#FFF' },
             staticZones: [
-                {strokeColor: "#22c55e", min: 0, max: 20},
-                {strokeColor: "#eab308", min: 20, max: 40},
-                {strokeColor: "#ef4444", min: 40, max: 100}
+                {strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#eab308", min: 20, max: 40}, {strokeColor: "#ef4444", min: 40, max: 100}
             ],
-            limitMax: false, limitMin: false, strokeColor: '#334155', generateGradient: true, highDpiSupport: true
+            strokeColor: '#334155', generateGradient: true, highDpiSupport: true
         };
-
         const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gaugeOpts);
         gNH3.maxValue = 100; gNH3.set(0);
-
         const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gaugeOpts);
         gTemp.maxValue = 50; gTemp.set(0);
 
-        // 4. LECTURA DE DATOS REALES (FIREBASE)
+        // 4. LECTURA DE DATOS EN TIEMPO REAL
         database.ref('/').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                document.getElementById('connection-status').innerText = "● GALPÓN CONECTADO EN TIEMPO REAL";
+                document.getElementById('connection-status').innerText = "● CONEXIÓN EXITOSA CON FIREBASE";
                 document.getElementById('connection-status').style.color = "var(--success)";
 
-                if(data.amoniaco !== undefined) {
-                    const val = parseFloat(data.amoniaco);
-                    gNH3.set(val);
-                    document.getElementById('val-nh3').innerText = val.toFixed(1);
-                    
-                    // Alerta automática
-                    if(val > 25) {
-                        const log = document.getElementById('event-log');
-                        log.innerHTML = `<div style="color:var(--danger)">⚠️ NH3 CRÍTICO: ${val} PPM - Capturando foto...</div>` + log.innerHTML;
-                        controlCam('snapPicture2');
-                    }
-                }
+                // Actualizar Amoníaco
+                const nh3 = data.amoniaco || 0;
+                gNH3.set(nh3);
+                document.getElementById('val-nh3').innerText = parseFloat(nh3).toFixed(1);
 
-                if(data.temperatura !== undefined) {
-                    const temp = parseFloat(data.temperatura);
-                    gTemp.set(temp);
-                    document.getElementById('val-temp').innerText = temp.toFixed(1);
+                // Actualizar Temperatura
+                const temp = data.temperatura || 0;
+                gTemp.set(temp);
+                document.getElementById('val-temp').innerText = parseFloat(temp).toFixed(1);
+
+                // Alerta automática si NH3 sube de 25
+                if(nh3 > 25) {
+                    const log = document.getElementById('event-log');
+                    log.innerHTML = `<div style="color:var(--danger)">⚠️ ALERTA: NH3 ALTO (${nh3} PPM)</div>` + log.innerHTML;
+                    controlCam('snapPicture2'); // Toma foto si hay SD
                 }
             }
+        }, (error) => {
+            document.getElementById('connection-status').innerText = "● ERROR DE PERMISOS EN FIREBASE";
+            console.error(error);
         });
     </script>
 </body>
