@@ -3,233 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Control Total Galpón</title>
+    <title>Capellán Cloud | Control Total</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --primary: #3b82f6;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --text: #f8fafc;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
-        }
-
-        .card {
-            background: var(--card);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-            text-align: center;
-            border: 1px solid #334155;
-        }
-
-        .stat-value {
-            font-size: 3rem;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .cam-frame {
-            width: 100%;
-            border-radius: 10px;
-            border: 2px solid var(--primary);
-            background: #000;
-            min-height: 225px;
-        }
-
-        .log-container {
-            background: #020617;
-            border-radius: 10px;
-            padding: 15px;
-            height: 150px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85rem;
-            text-align: left;
-            margin-top: 20px;
-            width: 100%;
-            max-width: 1200px;
-            border: 1px solid #1e293b;
-        }
-
-        .rain-alert {
-            color: #60a5fa;
-            font-weight: bold;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        .status-dot {
-            height: 10px;
-            width: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
+        :root { --bg: #0f172a; --card: #1e293b; --primary: #3b82f6; --danger: #ef4444; --success: #22c55e; --text: #f8fafc; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; text-align: center; }
+        .val { font-size: 2.8rem; font-weight: bold; margin: 10px 0; }
+        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 225px; }
+        .log-container { background: #020617; border-radius: 10px; padding: 15px; height: 120px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; text-align: left; margin: 20px auto; max-width: 1200px; border: 1px solid #1e293b; }
+        .chart-container { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; margin: 20px auto; max-width: 1200px; }
+        .rain-alert { color: #60a5fa; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
-    <h1 style="color: var(--primary); margin-bottom: 5px;">CAPELLÁN CLOUD 🐔</h1>
-    <div style="margin-bottom: 25px;">
-        <span id="dot" class="status-dot" style="background-color: var(--danger);"></span>
-        <span id="status-text" style="font-weight: bold; font-size: 0.9rem;">CONECTANDO CON SENSORES...</span>
-    </div>
+    <h1 style="text-align:center;">CAPELLÁN CLOUD 🐔</h1>
+    <div id="status" style="text-align:center; margin-bottom:20px; font-weight:bold; color:var(--danger);">● BUSCANDO SENSORES...</div>
 
     <div class="dashboard-grid">
         <div class="card">
             <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3"></canvas>
-            <div id="val-nh3" class="stat-value" style="color: var(--danger);">0.0</div>
-            <p style="color: #94a3b8;">Partes por millón (PPM)</p>
+            <div id="val-nh3" class="val" style="color:var(--danger)">0.0</div>
+            <span>PPM</span>
         </div>
 
         <div class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp"></canvas>
-            <div id="val-temp" class="stat-value" style="color: var(--success);">0.0</div>
-            <p style="color: #94a3b8;">Grados Celsius (°C)</p>
+            <div id="val-temp" class="val" style="color:var(--success)">0.0</div>
+            <span>°C</span>
         </div>
 
         <div class="card">
-            <h3>AMBIENTE Y CLIMA</h3>
-            <div style="margin-top: 20px;">
-                <span style="color: #94a3b8; font-size: 0.9rem;">HUMEDAD RELATIVA</span>
-                <div id="val-hum" class="stat-value" style="color: var(--primary);">0%</div>
-            </div>
-            <hr style="border: 0; border-top: 1px solid #334155; margin: 20px 0;">
-            <div id="val-lluvia" style="font-size: 1.5rem; font-weight: bold;">
-                ☀️ Despejado
-            </div>
+            <h3>AMBIENTE</h3>
+            <div style="color: #94a3b8;">HUMEDAD</div>
+            <div id="val-hum" class="val" style="color:var(--primary)">0%</div>
+            <hr style="border:0; border-top:1px solid #334155; margin:15px 0;">
+            <div id="val-lluvia" style="font-size: 1.3rem;">☀️ Despejado</div>
         </div>
 
         <div class="card">
-            <h3>VISTA DEL GALPÓN</h3>
-            <img id="foscam-stream" src="" class="cam-frame" alt="Esperando video...">
-            <p style="font-size: 0.7rem; color: #64748b; margin-top: 10px;">
-                Nota: Si no ve video, active "Contenido no seguro" en el candado del navegador.
-            </p>
+            <h3>CÁMARA FOSCAM</h3>
+            <img id="foscam-stream" src="" class="cam-frame">
+            <p style="font-size:0.7rem; color:#64748b; margin-top:5px;">Habilite "Contenido no seguro" si no ve imagen.</p>
         </div>
     </div>
 
-    <div class="log-container" id="event-logs">
-        > Consola del sistema iniciada...<br>
+    <div class="chart-container">
+        <h3>HISTORIAL DE SENSORES (Últimos minutos)</h3>
+        <canvas id="historyChart" height="100"></canvas>
     </div>
+
+    <div class="log-container" id="logs">> Sistema iniciado...</div>
 
     <script>
         window.onload = function() {
-            // 1. CONFIGURACIÓN FIREBASE
-            const firebaseConfig = {
-                databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com"
-            };
-            
-            // Inicializar Firebase
-            if (typeof firebase !== 'undefined') {
-                firebase.initializeApp(firebaseConfig);
-                const db = firebase.database();
-                
-                document.getElementById('status-text').innerText = "GALPÓN EN LÍNEA";
-                document.getElementById('status-text').style.color = "var(--success)";
-                document.getElementById('dot').style.background = "var(--success)";
+            // 1. FIREBASE
+            const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
 
-                // 2. ESCUCHAR DATOS (Ruta: galpon/actual)
-                db.ref('galpon/actual').on('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if(data) {
-                        actualizarDashboard(data);
+            // 2. GAUGES
+            const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
+            const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts); gNH3.maxValue = 100;
+            const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts); gTemp.maxValue = 50;
+
+            // 3. CHART (HISTORIAL)
+            const ctx = document.getElementById('historyChart').getContext('2d');
+            const historyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        { label: 'NH3 (PPM)', data: [], borderColor: '#ef4444', tension: 0.4 },
+                        { label: 'Temp (°C)', data: [], borderColor: '#22c55e', tension: 0.4 }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+
+            // 4. ESCUCHAR FIREBASE
+            db.ref('galpon/actual').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) {
+                    document.getElementById('status').innerText = "● GALPÓN CONECTADO";
+                    document.getElementById('status').style.color = "var(--success)";
+
+                    // Actualizar Valores
+                    if(data.nh3_ppm !== undefined) {
+                        gNH3.set(data.nh3_ppm);
+                        document.getElementById('val-nh3').innerText = data.nh3_ppm;
                     }
-                });
-            }
-
-            // 3. CONFIGURAR MEDIDORES (GAUGES)
-            const gOpts = {
-                angle: -0.2, lineWidth: 0.2, radiusScale: 1,
-                pointer: { length: 0.6, strokeWidth: 0.035, color: '#FFF' },
-                staticZones: [
-                    {strokeColor: "#22c55e", min: 0, max: 20},
-                    {strokeColor: "#eab308", min: 20, max: 40},
-                    {strokeColor: "#ef4444", min: 40, max: 100}
-                ],
-                limitMax: false, limitMin: false, strokeColor: '#334155', generateGradient: true, highDpiSupport: true
-            };
-
-            const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts);
-            gNH3.maxValue = 100; gNH3.set(0);
-
-            const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts);
-            gTemp.maxValue = 50; gTemp.set(0);
-
-            // 4. FUNCIÓN DE ACTUALIZACIÓN
-            function actualizarDashboard(data) {
-                // Amoníaco (nh3_ppm)
-                if(data.nh3_ppm !== undefined) {
-                    const val = parseFloat(data.nh3_ppm);
-                    gNH3.set(val);
-                    document.getElementById('val-nh3').innerText = val.toFixed(1);
-                    if(val > 25) addLog(`⚠️ ALERTA: Nivel de amoníaco elevado (${val} PPM)`);
-                }
-
-                // Temperatura
-                if(data.temperatura !== undefined) {
-                    const temp = parseFloat(data.temperatura);
-                    gTemp.set(temp);
-                    document.getElementById('val-temp').innerText = temp.toFixed(1) + "°C";
-                }
-
-                // Humedad
-                if(data.humedad !== undefined) {
-                    document.getElementById('val-hum').innerText = data.humedad + "%";
-                }
-
-                // Lluvia (Si dice "SI")
-                const lluviaBox = document.getElementById('val-lluvia');
-                if(data.lluvia === "SI") {
-                    if(!lluviaBox.classList.contains('rain-alert')) {
-                        lluviaBox.innerHTML = "<span class='rain-alert'>🌧️ ¡ESTÁ LLOVIENDO!</span>";
-                        addLog("🌧️ Evento detectado: Lluvia en el galpón");
+                    if(data.temperatura !== undefined) {
+                        gTemp.set(data.temperatura);
+                        document.getElementById('val-temp').innerText = data.temperatura + "°C";
                     }
-                } else {
-                    lluviaBox.innerText = "☀️ Despejado";
-                    lluviaBox.classList.remove('rain-alert');
+                    if(data.humedad !== undefined) {
+                        document.getElementById('val-hum').innerText = data.humedad + "%";
+                    }
+
+                    // Lluvia
+                    const rainBox = document.getElementById('val-lluvia');
+                    if(data.lluvia === "SI") {
+                        rainBox.innerHTML = "<span class='rain-alert'>🌧️ ¡ESTÁ LLOVIENDO!</span>";
+                        addLog("🌧️ Alerta: Lluvia detectada");
+                    } else {
+                        rainBox.innerText = "☀️ Despejado";
+                    }
+
+                    // Actualizar Gráfica
+                    const now = new Date().toLocaleTimeString();
+                    if (historyChart.data.labels.length > 10) {
+                        historyChart.data.labels.shift();
+                        historyChart.data.datasets[0].data.shift();
+                        historyChart.data.datasets[1].data.shift();
+                    }
+                    historyChart.data.labels.push(now);
+                    historyChart.data.datasets[0].data.push(data.nh3_ppm);
+                    historyChart.data.datasets[1].data.push(data.temperatura);
+                    historyChart.update();
                 }
-            }
+            });
 
             function addLog(msj) {
-                const logs = document.getElementById('event-logs');
-                const now = new Date().toLocaleTimeString();
-                logs.innerHTML = `[${now}] ${msj}<br>` + logs.innerHTML;
+                const logs = document.getElementById('logs');
+                logs.innerHTML = `[${new Date().toLocaleTimeString()}] ${msj}<br>` + logs.innerHTML;
             }
 
-            // 5. CARGAR VIDEO DE CÁMARA
+            // 5. VIDEO (FOSCAM)
             document.getElementById('foscam-stream').src = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=admin&pwd=7324088";
         };
     </script>
