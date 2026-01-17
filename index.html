@@ -1,140 +1,33 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Control Avícola</title>
+<script>
+    // CONFIGURACIÓN FIREBASE
+    const firebaseConfig = {
+        databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com"
+    };
     
-    <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
-    <style>
-        :root {
-            --bg-dark: #0f172a; --card-bg: #1e293b; --primary: #3b82f6;
-            --danger: #ef4444; --success: #22c55e; --text-main: #f8fafc;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-dark);
-            color: var(--text-main); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center;
-        }
-        .dashboard-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px; width: 100%; max-width: 1200px;
-        }
-        .card {
-            background: var(--card-bg); border-radius: 15px; padding: 20px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); text-align: center; border: 1px solid #334155;
-        }
-        .stat-value { font-size: 2.8rem; font-weight: bold; margin: 10px 0; color: var(--primary); }
-        .video-container { background: #000; border-radius: 12px; overflow: hidden; border: 2px solid var(--primary); min-height: 225px; }
-        #foscam-video { width: 100%; display: block; background: #000; }
-        .btn-cam { background: #334155; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 1.2rem; }
-        .btn-cam:active { background: var(--primary); transform: scale(0.9); }
-        .log-container { background: #020617; border-radius: 8px; padding: 12px; height: 80px; overflow-y: auto; font-family: monospace; font-size: 0.8rem; text-align: left; margin-top: 15px; }
-        .status-bar { font-size: 0.8rem; padding: 8px 20px; border-radius: 20px; margin-bottom: 20px; background: #1e293b; font-weight: bold; }
-    </style>
-</head>
-<body>
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-    <h1 style="margin: 10px 0 5px 0;">CAPELLÁN CLOUD 🐔</h1>
-    <div id="connection-status" class="status-bar" style="color: var(--danger);">● BUSCANDO DATOS DEL GALPÓN...</div>
+    // DATOS DE LA CÁMARA
+    const cam_url = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=admin&pwd=7324088";
 
-    <div class="dashboard-grid">
-        <div class="card">
-            <h3>AMONÍACO (NH3)</h3>
-            <canvas id="gauge-nh3"></canvas>
-            <div id="val-nh3" class="stat-value">--.-</div>
-            <p style="color: #94a3b8;">Nivel en PPM</p>
-        </div>
+    // Intentar cargar video
+    document.getElementById('foscam-video').src = cam_url;
 
-        <div class="card">
-            <h3>TEMPERATURA</h3>
-            <canvas id="gauge-temp"></canvas>
-            <div id="val-temp" class="stat-value">--.-</div>
-            <p style="color: #94a3b8;">Grados Celsius (°C)</p>
-        </div>
-
-        <div class="card">
-            <h3 style="margin-top:0;">VISTA EN VIVO</h3>
-            <div class="video-container">
-                <img id="foscam-video" src="" alt="Cargando stream...">
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 160px; margin: 20px auto;">
-                <div></div><button class="btn-cam" onmousedown="controlCam('ptzMoveUp')" onmouseup="controlCam('ptzStopRun')">▲</button><div></div>
-                <button class="btn-cam" onmousedown="controlCam('ptzMoveLeft')" onmouseup="controlCam('ptzStopRun')">◀</button>
-                <button class="btn-cam" onclick="controlCam('ptzStopRun')" style="background:var(--danger)">■</button>
-                <button class="btn-cam" onmousedown="controlCam('ptzMoveRight')" onmouseup="controlCam('ptzStopRun')">▶</button>
-                <div></div><button class="btn-cam" onmousedown="controlCam('ptzMoveDown')" onmouseup="controlCam('ptzStopRun')">▼</button><div></div>
-            </div>
-            <div class="log-container" id="event-log">> Iniciando monitorización...</div>
-        </div>
-    </div>
-
-    <script>
-        // 1. CONFIGURACIÓN FIREBASE ACTUALIZADA
-        const firebaseConfig = {
-            databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com",
-            // Los campos de abajo no son críticos si la base de datos está abierta (rules: true)
-            projectId: "galpon-capellan", 
-        };
-        
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // 2. DATOS DE LA CÁMARA
-        const cam_ip = "192.168.2.193:88";
-        const cam_user = "admin";
-        const cam_pass = "7324088";
-
-        // Cargar video (RECUERDA ACTIVAR PERMISOS EN EL CANDADO DEL NAVEGADOR)
-        document.getElementById('foscam-video').src = `http://${cam_ip}/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=${cam_user}&pwd=${cam_pass}`;
-
-        function controlCam(comando) {
-            fetch(`http://${cam_ip}/cgi-bin/CGIProxy.fcgi?cmd=${comando}&usr=${cam_user}&pwd=${cam_pass}`, { mode: 'no-cors' });
-        }
-
-        // 3. CONFIGURACIÓN DE GAUGES
-        const gaugeOpts = {
-            angle: -0.2, lineWidth: 0.2, radiusScale: 1, pointer: { length: 0.6, strokeWidth: 0.035, color: '#FFF' },
-            staticZones: [
-                {strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#eab308", min: 20, max: 40}, {strokeColor: "#ef4444", min: 40, max: 100}
-            ],
-            strokeColor: '#334155', generateGradient: true, highDpiSupport: true
-        };
-        const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gaugeOpts);
-        gNH3.maxValue = 100; gNH3.set(0);
-        const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gaugeOpts);
-        gTemp.maxValue = 50; gTemp.set(0);
-
-        // 4. LECTURA DE DATOS EN TIEMPO REAL
-        database.ref('/').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                document.getElementById('connection-status').innerText = "● CONEXIÓN EXITOSA CON FIREBASE";
-                document.getElementById('connection-status').style.color = "var(--success)";
-
-                // Actualizar Amoníaco
-                const nh3 = data.amoniaco || 0;
-                gNH3.set(nh3);
-                document.getElementById('val-nh3').innerText = parseFloat(nh3).toFixed(1);
-
-                // Actualizar Temperatura
-                const temp = data.temperatura || 0;
-                gTemp.set(temp);
-                document.getElementById('val-temp').innerText = parseFloat(temp).toFixed(1);
-
-                // Alerta automática si NH3 sube de 25
-                if(nh3 > 25) {
-                    const log = document.getElementById('event-log');
-                    log.innerHTML = `<div style="color:var(--danger)">⚠️ ALERTA: NH3 ALTO (${nh3} PPM)</div>` + log.innerHTML;
-                    controlCam('snapPicture2'); // Toma foto si hay SD
-                }
+    // ESCUCHAR DATOS (Asegúrate de que tu Arduino use estas etiquetas)
+    database.ref('/').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            console.log("Datos recibidos:", data);
+            // Actualizar Amoníaco (si la etiqueta en Arduino es 'amoniaco')
+            if (data.amoniaco !== undefined) {
+                gNH3.set(data.amoniaco);
+                document.getElementById('val-nh3').innerText = data.amoniaco;
             }
-        }, (error) => {
-            document.getElementById('connection-status').innerText = "● ERROR DE PERMISOS EN FIREBASE";
-            console.error(error);
-        });
-    </script>
-</body>
-</html>
+            // Actualizar Temperatura (si la etiqueta en Arduino es 'temperatura')
+            if (data.temperatura !== undefined) {
+                gTemp.set(data.temperatura);
+                document.getElementById('val-temp').innerText = data.temperatura;
+            }
+        }
+    });
+</script>
