@@ -2,98 +2,178 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capellán Cloud | Dashboard Profesional</title>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
+
     <style>
-        body { background: #0f172a; color: #f8fafc; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1100px; margin: auto; }
-        .card { background: #1e293b; border-radius: 15px; padding: 20px; border: 4px solid #334155; }
-        .val { font-size: 3rem; font-weight: bold; color: #3b82f6; margin: 10px 0; }
-        .cam-box { width: 100%; height: 320px; background: #000; border-radius: 10px; border: 2px solid #3b82f6; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; }
-        #foscam-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
-        .btn { background: #ef4444; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 10px; }
-        .ptz-btn { background: #334155; color: white; border: none; padding: 10px; margin: 2px; width: 55px; border-radius: 5px; cursor: pointer; font-size: 1.2rem; }
+        :root {
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc;
+            --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg); color: var(--text);
+            margin: 0; padding: 20px; text-align: center;
+        }
+        .container { max-width: 1200px; margin: auto; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px; margin-top: 30px;
+        }
+        .card {
+            background: var(--card); border-radius: 20px;
+            padding: 25px; border: 4px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); }
+        .val { font-size: 3.5rem; font-weight: bold; margin: 15px 0; }
+        
+        /* Video Container */
+        .cam-box {
+            width: 100%; height: 350px; background: #000;
+            border-radius: 15px; border: 3px solid var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; position: relative;
+        }
+        #video-stream { width: 100%; height: 100%; object-fit: contain; display: none; }
+        
+        .btn-main {
+            background: var(--primary); color: white; border: none;
+            padding: 18px; border-radius: 12px; cursor: pointer;
+            font-weight: bold; width: 100%; margin-bottom: 15px; font-size: 1.1rem;
+        }
+        .btn-main:hover { filter: brightness(1.2); }
+
+        .ptz-group { margin-top: 15px; }
+        .ptz-btn {
+            background: #334155; color: white; border: none;
+            padding: 15px; border-radius: 10px; cursor: pointer;
+            margin: 4px; width: 60px; font-size: 1.3rem;
+        }
+        .ptz-btn:active { background: var(--primary); }
     </style>
 </head>
 <body>
 
-    <h1 style="color:#3b82f6">CONTROL CAPELLÁN CLOUD 🚦</h1>
+<div class="container">
+    <h1 style="color: var(--primary); letter-spacing: 2px;">CAPELLÁN CLOUD 🚦</h1>
+    <p style="color: #64748b;">Monitoreo de Galpón en Tiempo Real</p>
 
     <div class="grid">
-        <div class="card">
-            <h3>AMONÍACO (NH3)</h3>
-            <canvas id="g1" style="width:100%"></canvas>
-            <div id="v1" class="val">--</div>
+        <div id="card-nh3" class="card">
+            <h3>AMONÍACO (NH₃)</h3>
+            <canvas id="gauge-nh3" style="width: 100%; height: 160px;"></canvas>
+            <div id="val-nh3" class="val">--</div>
+            <p id="label-nh3" style="font-weight: bold;">Cargando...</p>
         </div>
 
-        <div class="card">
+        <div id="card-temp" class="card">
             <h3>TEMPERATURA</h3>
-            <canvas id="g2" style="width:100%"></canvas>
-            <div id="v2" class="val">--</div>
+            <canvas id="gauge-temp" style="width: 100%; height: 160px;"></canvas>
+            <div id="val-temp" class="val">--</div>
+            <p id="label-temp" style="font-weight: bold;">Cargando...</p>
         </div>
 
-        <div class="card">
-            <button class="btn" onclick="activar()">1. AUTORIZAR Y VER CÁMARA</button>
+        <div class="card" style="border-color: var(--primary);">
+            <button id="btn-stream" class="btn-main" onclick="conectarStream()">CONECTAR VIDEO PROXY</button>
             <div class="cam-box">
-                <img id="foscam-stream">
-                <p id="t1" style="color:#475569;">Cámara Desconectada</p>
+                <img id="video-stream" src="">
+                <div id="status-text" style="color: #475569;">Esperando Servidor Java...</div>
             </div>
-            <div style="margin-top:10px">
-                <button class="ptz-btn" onclick="mv('ptzMoveUp')">▲</button><br>
-                <button class="ptz-btn" onclick="mv('ptzMoveLeft')">◄</button>
-                <button class="ptz-btn" onclick="mv('ptzReset')">🏠</button>
-                <button class="ptz-btn" onclick="mv('ptzMoveRight')">►</button><br>
-                <button class="ptz-btn" onclick="mv('ptzMoveDown')">▼</button>
+            <div class="ptz-group">
+                <button class="ptz-btn" onclick="controlar('ptzMoveUp')">▲</button><br>
+                <button class="ptz-btn" onclick="controlar('ptzMoveLeft')">◄</button>
+                <button class="ptz-btn" onclick="controlar('ptzReset')">🏠</button>
+                <button class="ptz-btn" onclick="controlar('ptzMoveRight')">►</button><br>
+                <button class="ptz-btn" onclick="controlar('ptzMoveDown')">▼</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        const USR="alex", PWD="F7324088", IP="192.168.2.193:88";
-        const url = "http://" + IP + "/cgi-bin/CGIProxy.fcgi?usr=" + USR + "&pwd=" + PWD;
+<script>
+    /* ================= CONFIGURACIÓN ================= */
+    // Reemplaza con la IP de la computadora donde corre tu Servidor Java
+    const PROXY_SERVER = "http://localhost:8080/stream-galpon"; 
+    // Para mover la cámara seguimos usando la IP directa (el Proxy Java también podría hacerlo)
+    const CAM_IP = "http://192.168.2.193:88/cgi-bin/CGIProxy.fcgi?usr=alex&pwd=F7324088";
 
-        firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
-        const db = firebase.database();
+    /* ================= FIREBASE ================= */
+    const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        const opt = { angle:-0.2, lineWidth:0.2, pointer:{length:0.6,color:"#fff"}, staticZones:[{strokeColor:"#22c55e",min:0,max:20},{strokeColor:"#ef4444",min:20,max:100}] };
-        const g1 = new Gauge(document.getElementById("g1")).setOptions(opt);
-        const g2 = new Gauge(document.getElementById("g2")).setOptions(opt);
-        g1.maxValue=100; g2.maxValue=50;
+    /* ================= GAUGES ================= */
+    const gOpts = {
+        angle: -0.2, lineWidth: 0.2,
+        pointer: { length: 0.6, color: "#fff" },
+        staticZones: [
+            {strokeColor: "#22c55e", min: 0, max: 20},
+            {strokeColor: "#ef4444", min: 20, max: 100}
+        ]
+    };
+    const gNH3 = new Gauge(document.getElementById("gauge-nh3")).setOptions(gOpts);
+    const gTemp = new Gauge(document.getElementById("gauge-temp")).setOptions(gOpts);
+    gNH3.maxValue = 100; gTemp.maxValue = 50;
 
-        function activar() {
-            // Abrimos la ventana que da el permiso
-            window.open(url + "&cmd=getDevState", "auth", "width=300,height=200");
-            
-            setTimeout(() => {
-                const img = document.getElementById("foscam-stream");
-                img.style.display = "block";
-                document.getElementById("t1").style.display = "none";
-                
-                // Modo Ráfaga
-                setInterval(() => {
-                    img.src = url + "&cmd=snapShot&_ts=" + Date.now();
-                }, 1000);
+    /* ================= LÓGICA DE VIDEO ================= */
+    function conectarStream() {
+        const img = document.getElementById("video-stream");
+        const status = document.getElementById("status-text");
+        const btn = document.getElementById("btn-stream");
 
-                const b = document.querySelector(".btn");
-                b.innerText = "✅ VIDEO EN VIVO";
-                b.style.background = "#22c55e";
-            }, 2000);
+        img.style.display = "block";
+        status.style.display = "none";
+        btn.innerText = "✅ RECIBIENDO DESDE JAVA";
+        btn.style.background = "#22c55e";
+
+        // El navegador ahora pide el video al servidor Java, no a la cámara.
+        // Esto evita el error de Mixed Content de GitHub.
+        setInterval(() => {
+            img.src = PROXY_SERVER + "?ts=" + Date.now();
+        }, 800); 
+    }
+
+    function controlar(comando) {
+        // Enviamos el comando de movimiento a través de un objeto Image (Truco silencioso)
+        const ping = new Image();
+        ping.src = CAM_IP + "&cmd=" + comando + "&_ts=" + Date.now();
+    }
+
+    /* ================= ACTUALIZACIÓN SENSORES ================= */
+    db.ref("galpon/actual").on("value", snap => {
+        const data = snap.val();
+        if(!data) return;
+
+        // NH3
+        if(data.nh3_ppm != null) {
+            gNH3.set(data.nh3_ppm);
+            const el = document.getElementById("val-nh3");
+            const lbl = document.getElementById("label-nh3");
+            el.innerText = data.nh3_ppm + " ppm";
+            el.style.color = data.nh3_ppm > 20 ? "#ef4444" : "#22c55e";
+            lbl.innerText = data.nh3_ppm > 20 ? "🚨 NIVEL CRÍTICO" : "✅ AIRE SEGURO";
+            lbl.style.color = data.nh3_ppm > 20 ? "#ef4444" : "#22c55e";
         }
 
-        function mv(c) { 
-            const i = new Image();
-            i.src = url + "&cmd=" + c + "&_ts=" + Date.now();
+        // Temperatura
+        if(data.temperatura != null) {
+            gTemp.set(data.temperatura);
+            const elT = document.getElementById("val-temp");
+            const lblT = document.getElementById("label-temp");
+            elT.innerText = data.temperatura + "°C";
+            elT.style.color = data.temperatura > 31 ? "#ef4444" : "#22c55e";
+            lblT.innerText = data.temperatura > 31 ? "🚨 ALTA TEMPERATURA" : "✅ TEMPERATURA OK";
+            lblT.style.color = data.temperatura > 31 ? "#ef4444" : "#22c55e";
         }
+    });
+</script>
 
-        db.ref("galpon/actual").on("value", s => {
-            const d = s.val();
-            if(d) {
-                g1.set(d.nh3_ppm); document.getElementById("v1").innerText = d.nh3_ppm + " ppm";
-                g2.set(d.temperatura); document.getElementById("v2").innerText = d.temperatura + " °C";
-            }
-        });
-    </script>
 </body>
 </html>
