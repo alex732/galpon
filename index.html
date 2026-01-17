@@ -2,24 +2,26 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Directriz Chrome</title>
+    <title>Capellán Cloud | Control Final</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; text-align: center; }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; text-align: center; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
         .card { background: var(--card); border-radius: 20px; padding: 25px; border: 4px solid #334155; }
-        .val { font-size: 3.5rem; font-weight: bold; }
-        /* El contenedor de video según Chrome debe estar oculto hasta ser autorizado */
-        #cam-layer { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 250px; display: none; }
-        .btn-auth { background: #ef4444; color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.1rem; }
+        .val { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
+        .cam-box { width: 100%; border-radius: 15px; border: 3px solid var(--primary); background: #000; height: 300px; overflow: hidden; position: relative; }
+        .cam-frame { width: 100%; height: 100%; object-fit: contain; }
+        .btn-unlock { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 10px; width: 100%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        .ptz-btn { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin: 3px; width: 55px; }
     </style>
 </head>
 <body>
 
-    <h1 style="color: var(--primary);">CONTROL GALPÓN CAPELLÁN</h1>
+    <h1 style="color: var(--primary);">CONTROL GALPÓN CAPELLÁN 🚦</h1>
 
     <div class="grid">
         <div class="card">
@@ -36,9 +38,17 @@
 
         <div class="card" style="border-color: var(--primary);">
             <h3>VISTA EN VIVO</h3>
-            <button id="auth-btn" class="btn-auth" onclick="iniciarConexion()">CLIC AQUÍ PARA AUTORIZAR VIDEO</button>
-            <img id="cam-layer" src="">
-            <p id="status-text" style="font-size: 0.8rem; margin-top:10px; color: #94a3b8;">Estado: Esperando autorización...</p>
+            <button class="btn-unlock" onclick="desbloquear()">⚠️ CLIC AQUÍ PARA DESBLOQUEAR VIDEO</button>
+            <div class="cam-box">
+                <img id="foscam-img" src="" class="cam-frame">
+            </div>
+            <div style="margin-top: 15px;">
+                <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
+                <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
+                <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
+                <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
+                <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
+            </div>
         </div>
     </div>
 
@@ -48,27 +58,29 @@
         const PWD = "F7324088";
         const base = `http://${IP}/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
 
-        // Esta función cumple la directriz de "Interacción de Usuario" de Google
-        function iniciarConexion() {
-            // 1. Abrimos brevemente una ventana para que Chrome confíe en el origen HTTP
-            const testWin = window.open(base + "&cmd=getDevState", "auth", "width=10,height=10");
+        function desbloquear() {
+            // Abrimos la cámara en una ventana aparte para que Chrome autorice la IP local
+            const win = window.open(base + "&cmd=getDevState", "desbloqueo", "width=400,height=300");
+            alert("PASO FINAL: Si ves una pantalla blanca o con letras, NO LA CIERRES. Vuelve aquí y espera 5 segundos.");
             
-            document.getElementById('auth-btn').style.display = 'none';
-            document.getElementById('cam-layer').style.display = 'block';
-            document.getElementById('status-text').innerText = "Conectando a Flujo MJPEG...";
-
             setTimeout(() => {
-                if(testWin) testWin.close();
-                // Cargamos el stream secundario (type=1) que es el que soporta Chrome nativamente
-                document.getElementById('cam-layer').src = `${base}&cmd=getLiveStream&type=1`;
-            }, 2000);
+                iniciarVideo();
+            }, 5000);
+        }
+
+        function mover(cmd) { fetch(`${base}&cmd=${cmd}`).catch(e => {}); }
+
+        function iniciarVideo() {
+            // Usamos snapshots para evitar que el motor de video de Chrome bloquee el flujo
+            setInterval(() => {
+                document.getElementById('foscam-img').src = `${base}&cmd=snapShot&_ts=${new Date().getTime()}`;
+            }, 1000);
         }
 
         window.onload = function() {
             firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
             const db = firebase.database();
-            
-            // Configurar Gauges
+
             const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions({angle:-0.2,lineWidth:0.2,pointer:{length:0.6,color:'#FFF'},staticZones:[{strokeColor:"#22c55e",min:0,max:20},{strokeColor:"#ef4444",min:20,max:100}]});
             const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions({angle:-0.2,lineWidth:0.2,pointer:{length:0.6,color:'#FFF'},staticZones:[{strokeColor:"#22c55e",min:0,max:20},{strokeColor:"#ef4444",min:20,max:100}]});
             gNH3.maxValue = 100; gTemp.maxValue = 50;
