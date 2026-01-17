@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Total</title>
+    <title>Capellán Cloud | Control Pro</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
@@ -10,49 +10,42 @@
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
-        
-        /* Tarjetas Gigantes */
-        .card { background: var(--card); border-radius: 20px; padding: 30px; border: 5px solid #334155; text-align: center; transition: 0.3s; }
-        .status-safe { border-color: var(--safe); box-shadow: 0 0 20px rgba(34, 197, 94, 0.2); }
-        .status-danger { border-color: var(--danger); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
-
-        .val { font-size: 4.5rem; font-weight: bold; margin: 10px 0; }
-        .cam-box { width: 100%; border-radius: 15px; border: 3px solid var(--primary); background: #000; height: 320px; overflow: hidden; }
+        .card { background: var(--card); border-radius: 20px; padding: 25px; border: 5px solid #334155; text-align: center; }
+        .status-safe { border-color: var(--safe); }
+        .status-danger { border-color: var(--danger); }
+        .val { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
+        .cam-box { width: 100%; border-radius: 15px; border: 3px solid var(--primary); background: #000; height: 280px; overflow: hidden; }
         .cam-frame { width: 100%; height: 100%; object-fit: contain; }
-        
-        .ptz-btn { background: #334155; color: white; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 1.2rem; margin: 3px; width: 60px; }
-        .ptz-btn:active { background: var(--primary); }
-        .btn-sync { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
+        .btn-unlock { background: var(--danger); color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 10px; width: 100%; }
+        .ptz-btn { background: #334155; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; margin: 2px; width: 50px; }
     </style>
 </head>
 <body>
 
-    <div style="text-align: center;">
-        <h1 style="color: var(--primary); margin-bottom: 5px;">CAPELLÁN CLOUD 🚦</h1>
-        <button class="btn-sync" onclick="location.reload()">🔄 REFRESCAR CONEXIÓN</button>
-    </div>
+    <h1 style="text-align:center; color: var(--primary);">CONTROL GALPÓN CAPELLÁN 🚦</h1>
 
     <div class="grid">
         <div id="card-nh3" class="card">
-            <h2 style="margin:0; color: #94a3b8;">AMONÍACO (NH3)</h2>
+            <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3" style="width:100%"></canvas>
             <div id="val-nh3" class="val">--</div>
-            <div id="lab-nh3" style="font-weight:bold; font-size: 1.2rem;">CONECTANDO...</div>
+            <p id="lab-nh3" style="font-weight:bold">CONECTADO</p>
         </div>
 
         <div id="card-temp" class="card">
-            <h2 style="margin:0; color: #94a3b8;">TEMPERATURA</h2>
+            <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp" style="width:100%"></canvas>
             <div id="val-temp" class="val">--</div>
-            <div id="lab-temp" style="font-weight:bold; font-size: 1.2rem;">CONECTANDO...</div>
+            <p id="lab-temp" style="font-weight:bold">CONECTADO</p>
         </div>
 
         <div class="card" style="border-color: var(--primary);">
-            <h2 style="margin:0; color: var(--primary);">CÁMARA VIVO</h2>
-            <div class="cam-box" style="margin-top: 15px;">
+            <h3>VISTA EN VIVO</h3>
+            <button class="btn-unlock" onclick="desbloquearVideo()">1. CLIC AQUÍ PARA AUTORIZAR</button>
+            <div class="cam-box">
                 <img id="foscam-img" src="" class="cam-frame">
             </div>
-            <div style="margin-top: 15px;">
+            <div style="margin-top: 10px;">
                 <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
                 <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
                 <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
@@ -68,20 +61,23 @@
         const PWD = "F7324088";
         const base = `http://${IP}/cgi-bin/CGIProxy.fcgi?usr=${USR}&pwd=${PWD}`;
 
+        // Función para abrir la cámara en una pestaña nueva y que el navegador confíe
+        function desbloquearVideo() {
+            window.open(base + "&cmd=getDevState", "_blank", "width=400,height=300");
+            alert("Se abrió una ventana pequeña. Si dice 'No es seguro', dale a 'Opciones Avanzadas' y luego a 'Acceder a 192.168.2.193'. Luego vuelve aquí.");
+        }
+
         function mover(cmd) { fetch(`${base}&cmd=${cmd}`).catch(e => {}); }
 
-        function updateCam() {
-            // Método snapshot para evitar bloqueos de stream en Chrome
+        function actualizarVideo() {
+            // Usamos el modo snapshot (foto rápida) que es el que Chrome no bloquea tanto
             document.getElementById('foscam-img').src = `${base}&cmd=snapShot&_ts=${new Date().getTime()}`;
         }
 
         window.onload = function() {
-            // Configuración Firebase con tus datos
-            const fbConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" };
-            firebase.initializeApp(fbConfig);
+            firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
             const db = firebase.database();
 
-            // Gauges
             const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
             const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts); gNH3.maxValue = 100;
             const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts); gTemp.maxValue = 50;
@@ -89,29 +85,15 @@
             db.ref('galpon/actual').on('value', (snap) => {
                 const d = snap.val();
                 if(d) {
-                    const n = d.nh3_ppm || 0;
-                    const t = d.temperatura || 0;
-                    
-                    gNH3.set(n); document.getElementById('val-nh3').innerText = n;
-                    gTemp.set(t); document.getElementById('val-temp').innerText = t + "°C";
-
-                    // Estilo Semáforo
-                    const cNH3 = document.getElementById('card-nh3');
-                    const cTmp = document.getElementById('card-temp');
-                    
-                    if(n > 20) { cNH3.className = 'card status-danger'; document.getElementById('lab-nh3').innerText = '🚨 PELIGRO'; }
-                    else { cNH3.className = 'card status-safe'; document.getElementById('lab-nh3').innerText = '✅ ÓPTIMO'; }
-
-                    if(t > 31) { cTmp.className = 'card status-danger'; document.getElementById('lab-temp').innerText = '🚨 CALOR'; }
-                    else { cTmp.className = 'card status-safe'; document.getElementById('lab-temp').innerText = '✅ ÓPTIMO'; }
+                    gNH3.set(d.nh3_ppm); document.getElementById('val-nh3').innerText = d.nh3_ppm;
+                    gTemp.set(d.temperatura); document.getElementById('val-temp').innerText = d.temperatura + "°C";
+                    document.getElementById('card-nh3').className = d.nh3_ppm > 20 ? 'card status-danger' : 'card status-safe';
+                    document.getElementById('card-temp').className = d.temperatura > 31 ? 'card status-danger' : 'card status-safe';
                 }
-            }, (error) => {
-                console.error("Error Firebase:", error);
-                document.getElementById('lab-nh3').innerText = "ERROR FIREBASE";
             });
 
-            // Bucle de cámara (1 foto cada segundo)
-            setInterval(updateCam, 1000);
+            // Refrescar imagen cada segundo
+            setInterval(actualizarVideo, 1000);
         };
     </script>
 </body>
