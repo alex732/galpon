@@ -2,48 +2,55 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Total</title>
+    <title>Capellán Cloud | Dashboard Chrome</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 4px solid #334155; text-align: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 4px solid #334155; text-align: center; transition: 0.3s; }
         .status-safe { border-color: var(--safe); }
         .status-danger { border-color: var(--danger); }
-        .val { font-size: 3.2rem; font-weight: bold; margin: 5px 0; }
-        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 240px; object-fit: contain; }
-        .ptz-btn { background: #334155; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; margin: 3px; width: 50px; }
+        .val { font-size: 3.5rem; font-weight: bold; margin: 10px 0; }
+        .cam-container { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; overflow: hidden; height: 300px; position: relative; }
+        .cam-frame { width: 100%; height: 100%; object-fit: contain; }
+        .ptz-controls { margin-top: 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 150px; margin-left: auto; margin-right: auto; }
+        .btn-ptz { background: #334155; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; }
+        .btn-ptz:active { background: var(--primary); }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align:center; color: var(--primary);">CONTROL GALPÓN 🚦</h1>
+    <h1 style="text-align:center; color: var(--primary);">CONTROL GALPÓN CAPELLÁN</h1>
 
     <div class="grid">
         <div id="card-nh3" class="card">
             <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3" style="width:100%"></canvas>
             <div id="val-nh3" class="val">--</div>
+            <p id="lab-nh3" style="font-weight:bold">ESPERANDO...</p>
         </div>
 
         <div id="card-temp" class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp" style="width:100%"></canvas>
             <div id="val-temp" class="val">--</div>
+            <p id="lab-temp" style="font-weight:bold">ESPERANDO...</p>
         </div>
 
         <div class="card" style="border-color: var(--primary);">
-            <h3>VISTA EN VIVO (.193)</h3>
-            <img id="foscam-img" src="" class="cam-frame">
-            <div style="margin-top: 10px;">
-                <button class="ptz-btn" onclick="mover('ptzMoveUp')">▲</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveLeft')">◄</button>
-                <button class="ptz-btn" onclick="mover('ptzReset')">🏠</button>
-                <button class="ptz-btn" onclick="mover('ptzMoveRight')">►</button><br>
-                <button class="ptz-btn" onclick="mover('ptzMoveDown')">▼</button>
+            <h3>CÁMARA (.193)</h3>
+            <div class="cam-container">
+                <img id="video-stream" src="" class="cam-frame">
+            </div>
+            <div class="ptz-controls">
+                <div></div><button class="btn-ptz" onclick="mover('ptzMoveUp')">▲</button><div></div>
+                <button class="btn-ptz" onclick="mover('ptzMoveLeft')">◄</button>
+                <button class="btn-ptz" onclick="mover('ptzReset')">🏠</button>
+                <button class="btn-ptz" onclick="mover('ptzMoveRight')">►</button>
+                <div></div><button class="btn-ptz" onclick="mover('ptzMoveDown')">▼</button><div></div>
             </div>
         </div>
     </div>
@@ -56,18 +63,19 @@
 
         function mover(cmd) { fetch(`${base}&cmd=${cmd}`); }
 
-        // Función para refrescar la imagen cada 1 segundo (Snapshot Loop)
-        function refreshImage() {
-            const imgElement = document.getElementById('foscam-img');
-            // Añadimos un número aleatorio al final para que el navegador no use la caché
-            imgElement.src = `${base}&cmd=snapShot&_ts=${new Date().getTime()}`;
+        function cargarVideo() {
+            // El manual especifica que para Chrome se debe usar el stream MJPEG (type=1)
+            // y añadir un parámetro de tiempo para romper la caché
+            const streamUrl = `${base}&cmd=getLiveStream&type=1&_ts=${new Date().getTime()}`;
+            document.getElementById('video-stream').src = streamUrl;
         }
 
         window.onload = function() {
+            // Inicializar Firebase
             firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
             const db = firebase.database();
-            
-            // Configurar Gauges (NH3 y Temp)
+
+            // Config Gauges
             const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
             const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts); gNH3.maxValue = 100;
             const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts); gTemp.maxValue = 50;
@@ -77,13 +85,16 @@
                 if(d) {
                     gNH3.set(d.nh3_ppm); document.getElementById('val-nh3').innerText = d.nh3_ppm;
                     gTemp.set(d.temperatura); document.getElementById('val-temp').innerText = d.temperatura + "°C";
+                    
                     document.getElementById('card-nh3').className = d.nh3_ppm > 20 ? 'card status-danger' : 'card status-safe';
+                    document.getElementById('lab-nh3').innerText = d.nh3_ppm > 20 ? "PELIGRO" : "ÓPTIMO";
+                    
                     document.getElementById('card-temp').className = d.temperatura > 31 ? 'card status-danger' : 'card status-safe';
+                    document.getElementById('lab-temp').innerText = d.temperatura > 31 ? "CALOR ALTO" : "NORMAL";
                 }
             });
 
-            // Iniciar el bucle de imágenes cada 1 segundo
-            setInterval(refreshImage, 1000);
+            cargarVideo();
         };
     </script>
 </body>
