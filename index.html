@@ -2,155 +2,115 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Maestro Alex</title>
+    <title>Capellán Cloud | Dashboard Final</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gaugeJS/dist/gauge.min.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --warn: #eab308; --danger: #ef4444; }
+        :root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --primary: #3b82f6; --safe: #22c55e; --danger: #ef4444; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; margin: auto; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 4px solid #334155; text-align: center; transition: 0.4s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        
-        /* Estados Semáforo */
-        .status-safe { border-color: var(--safe); box-shadow: 0 0 15px rgba(34, 197, 94, 0.2); }
-        .status-warn { border-color: var(--warn); box-shadow: 0 0 15px rgba(234, 179, 8, 0.2); }
-        .status-danger { border-color: var(--danger); box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
-
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 4px solid #334155; text-align: center; }
+        .status-safe { border-color: var(--safe); }
+        .status-danger { border-color: var(--danger); }
         .val { font-size: 3rem; font-weight: bold; margin: 5px 0; }
-        .cam-frame { width: 100%; border-radius: 10px; border: 2px solid var(--primary); background: #000; min-height: 230px; }
+        .cam-container { position: relative; width: 100%; background: #000; border-radius: 10px; min-height: 240px; border: 2px solid var(--primary); overflow: hidden; }
+        .cam-frame { width: 100%; height: 100%; display: block; }
         
-        .btn-action { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #0f172a; border-radius: 10px; overflow: hidden; }
+        .btn-unlock { background: var(--danger); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1rem; margin-bottom: 20px; }
+        .btn-unlock:hover { background: #dc2626; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #0f172a; border-radius: 10px; overflow: hidden; }
         th, td { padding: 12px; border-bottom: 1px solid #334155; text-align: center; }
-        th { color: var(--primary); font-size: 0.9rem; text-transform: uppercase; }
-        
-        .rain-text { font-weight: bold; font-size: 1.2rem; }
-        .blink { animation: blinker 1.5s linear infinite; color: var(--primary); }
-        @keyframes blinker { 50% { opacity: 0; } }
+        th { color: var(--primary); font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align:center; color: var(--primary); margin-bottom: 5px;">CAPELLÁN CLOUD 🐔</h1>
-    <p style="text-align:center; margin-bottom: 25px; color: #94a3b8;">Monitoreo en Tiempo Real | Cámara IP .97</p>
+    <h1 style="text-align:center; color: var(--primary);">CAPELLÁN CLOUD 🚦</h1>
+    
+    <div style="max-width: 1200px; margin: auto;">
+        <button class="btn-unlock" onclick="sincronizarCamara()">⚠️ PASO 1: CLIC AQUÍ PARA DESBLOQUEAR VIDEO</button>
+    </div>
 
     <div class="grid">
         <div id="card-nh3" class="card">
             <h3>AMONÍACO (NH3)</h3>
             <canvas id="gauge-nh3" style="width:100%"></canvas>
             <div id="val-nh3" class="val">--</div>
-            <div id="label-nh3" style="font-weight:bold">Detectando...</div>
         </div>
 
         <div id="card-temp" class="card">
             <h3>TEMPERATURA</h3>
             <canvas id="gauge-temp" style="width:100%"></canvas>
             <div id="val-temp" class="val">--</div>
-            <div id="label-temp" style="font-weight:bold">Detectando...</div>
-        </div>
-
-        <div class="card">
-            <h3>HUMEDAD / CLIMA</h3>
-            <div id="val-hum" class="val" style="color: var(--primary);">--%</div>
-            <hr style="border:0; border-top:1px solid #334155; margin:15px 0;">
-            <div id="val-lluvia" class="rain-text">☀️ Despejado</div>
         </div>
 
         <div class="card" style="border-color: var(--primary);">
-            <h3>VISTA EN VIVO</h3>
-            <img id="stream" src="" class="cam-frame">
-            <button class="btn-action" onclick="window.open(camTest, '_blank')">FORZAR VIDEO / TEST</button>
-            <p style="font-size:0.65rem; color:#94a3b8; margin-top:8px;">Habilite "Contenido no seguro" si el cuadro sigue negro.</p>
+            <h3>CÁMARA EN VIVO</h3>
+            <div class="cam-container">
+                <img id="foscam-video" src="" class="cam-frame">
+            </div>
+            <p style="font-size:0.7rem; color:#94a3b8; margin-top:10px;">IP: 192.168.2.97 | Usuario: alex</p>
         </div>
     </div>
 
-    <div style="max-width:1200px; margin: 30px auto; background: var(--card); padding:20px; border-radius:15px; border: 1px solid #334155;">
-        <h3 style="color:var(--primary); margin:0 0 15px 0;">HISTORIAL DE REGISTROS</h3>
+    <div style="max-width: 1200px; margin: 30px auto; background: var(--card); padding: 20px; border-radius: 15px; border: 1px solid #334155;">
+        <h3 style="color:var(--primary); margin:0 0 15px 0;">HISTORIAL RECIENTE</h3>
         <table>
             <thead>
-                <tr>
-                    <th>Hora</th>
-                    <th>NH3 (PPM)</th>
-                    <th>Temp (°C)</th>
-                    <th>Humedad (%)</th>
-                    <th>Lluvia</th>
-                </tr>
+                <tr><th>Hora</th><th>NH3 (PPM)</th><th>Temp (°C)</th><th>Hum (%)</th><th>Lluvia</th></tr>
             </thead>
             <tbody id="history-body"></tbody>
         </table>
     </div>
 
     <script>
-        // CONFIGURACIÓN ACTUALIZADA
         const IP = "192.168.2.97:88";
         const USR = "alex";
         const PWD = "F7324088";
-        const camStream = `http://${IP}/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=${USR}&pwd=${PWD}`;
-        const camTest = `http://${IP}/cgi-bin/CGIProxy.fcgi?cmd=getDevState&usr=${USR}&pwd=${PWD}`;
+        const camUrl = `http://${IP}/cgi-bin/CGIProxy.fcgi?cmd=getLiveStream&usr=${USR}&pwd=${PWD}`;
+
+        // ESTA FUNCIÓN "DESPIERTA" EL NAVEGADOR
+        function sincronizarCamara() {
+            const testUrl = `http://${IP}/cgi-bin/CGIProxy.fcgi?cmd=getDevState&usr=${USR}&pwd=${PWD}`;
+            const win = window.open(testUrl, "Desbloqueo", "width=400,height=300");
+            
+            setTimeout(() => {
+                if (win) {
+                    win.close();
+                    document.getElementById('foscam-video').src = camUrl;
+                    alert("¡Video sincronizado! Si no aparece, recuerda permitir 'Contenido no seguro' en el candado.");
+                }
+            }, 4000);
+        }
 
         window.onload = function() {
-            // FIREBASE
             firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
             const db = firebase.database();
 
-            // GAUGES
-            const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [
-                {strokeColor: "#22c55e", min: 0, max: 20}, 
-                {strokeColor: "#eab308", min: 20, max: 40}, 
-                {strokeColor: "#ef4444", min: 40, max: 100}
-            ]};
+            const gOpts = { angle: -0.2, lineWidth: 0.2, pointer: { length: 0.6, color: '#FFF' }, staticZones: [{strokeColor: "#22c55e", min: 0, max: 20}, {strokeColor: "#ef4444", min: 20, max: 100}] };
             const gNH3 = new Gauge(document.getElementById('gauge-nh3')).setOptions(gOpts); gNH3.maxValue = 100;
             const gTemp = new Gauge(document.getElementById('gauge-temp')).setOptions(gOpts); gTemp.maxValue = 50;
 
-            // ACTUALIZACIÓN DE DATOS
             db.ref('galpon/actual').on('value', (snap) => {
                 const d = snap.val();
                 if(d) {
                     const n = d.nh3_ppm || 0;
                     const t = d.temperatura || 0;
-                    const h = d.humedad || 0;
-                    const l = d.lluvia || "NO";
-
-                    // Gauges y Números
                     gNH3.set(n); document.getElementById('val-nh3').innerText = n;
                     gTemp.set(t); document.getElementById('val-temp').innerText = t + "°C";
-                    document.getElementById('val-hum').innerText = h + "%";
-                    
-                    // Lluvia
-                    const rBox = document.getElementById('val-lluvia');
-                    rBox.innerHTML = (l === "SI") ? "<span style='color:var(--primary)' class='blink'>🌧️ ¡LLUVIOSA!</span>" : "☀️ Despejado";
 
-                    updateStatus('nh3', n);
-                    updateStatus('temp', t);
-                    updateTable(n, t, h, l);
+                    // Semáforo visual
+                    document.getElementById('card-nh3').className = n > 20 ? 'card status-danger' : 'card status-safe';
+                    document.getElementById('card-temp').className = t > 31 ? 'card status-danger' : 'card status-safe';
+
+                    // Tabla
+                    const row = `<tr><td>${new Date().toLocaleTimeString()}</td><td>${n}</td><td>${t}°C</td><td>${d.humedad}%</td><td>${d.lluvia}</td></tr>`;
+                    document.getElementById('history-body').insertAdjacentHTML('afterbegin', row);
+                    if (document.getElementById('history-body').rows.length > 10) document.getElementById('history-body').deleteRow(10);
                 }
             });
-
-            function updateStatus(id, val) {
-                const card = document.getElementById('card-' + id);
-                const lab = document.getElementById('label-' + id);
-                card.classList.remove('status-safe', 'status-warn', 'status-danger');
-                if(id === 'nh3') {
-                    if(val < 20) { card.classList.add('status-safe'); lab.innerText = "NIVEL ÓPTIMO"; lab.style.color = "var(--safe)"; }
-                    else if(val < 40) { card.classList.add('status-warn'); lab.innerText = "PRECAUCIÓN"; lab.style.color = "var(--warn)"; }
-                    else { card.classList.add('status-danger'); lab.innerText = "PELIGRO CRÍTICO"; lab.style.color = "var(--danger)"; }
-                } else {
-                    if(val <= 31) { card.classList.add('status-safe'); lab.innerText = "NORMAL"; lab.style.color = "var(--safe)"; }
-                    else { card.classList.add('status-danger'); lab.innerText = "ESTRÉS TÉRMICO"; lab.style.color = "var(--danger)"; }
-                }
-            }
-
-            function updateTable(n, t, h, r) {
-                const tbody = document.getElementById('history-body');
-                const row = `<tr><td>${new Date().toLocaleTimeString()}</td><td>${n}</td><td>${t}°C</td><td>${h}%</td><td>${r}</td></tr>`;
-                tbody.insertAdjacentHTML('afterbegin', row);
-                if (tbody.rows.length > 10) tbody.deleteRow(10);
-            }
-
-            // CARGAR VIDEO
-            document.getElementById('stream').src = camStream;
         };
     </script>
 </body>
