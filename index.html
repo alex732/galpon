@@ -7,45 +7,52 @@
         body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: auto; }
         .card { background: #1e293b; border-radius: 15px; padding: 20px; border: 2px solid #334155; }
-        .val { font-size: 2.5rem; color: #3b82f6; font-weight: bold; margin: 10px 0; }
-        .video-box { width: 100%; height: 350px; background: #000; border-radius: 10px; border: 2px solid #3b82f6; overflow: hidden; }
+        .val { font-size: 2.5rem; color: #3b82f6; font-weight: bold; }
+        .video-box { width: 100%; height: 350px; background: #000; border-radius: 10px; border: 2px solid #3b82f6; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         img { width: 100%; height: 100%; object-fit: contain; }
+        .alert { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
     <h1>CAPELLÁN CLOUD 🚦</h1>
     <div class="grid">
+        <div class="card"><h3>NH3</h3><div id="nh3" class="val">--</div></div>
+        <div class="card"><h3>TEMP</h3><div id="temp" class="val">--</div></div>
         <div class="card">
-            <h3>AMONÍACO</h3>
-            <div id="nh3" class="val">--</div>
-            <p>PPM</p>
-        </div>
-        <div class="card">
-            <h3>TEMPERATURA</h3>
-            <div id="temp" class="val">--</div>
-            <p>°C</p>
-        </div>
-        <div class="card">
-            <h3>CÁMARA (Puerto 9000)</h3>
+            <h3>VIVO (PC PROXY)</h3>
             <div class="video-box">
                 <img id="cam" src="">
+                <p id="loading-text">Conectando...</p>
             </div>
-            <p id="status" style="font-size: 11px; margin-top: 10px; color: #64748b;">Iniciando Proxy...</p>
+            <div id="error-link" class="alert">
+                BLOQUEO DE SEGURIDAD: <br>
+                <a href="http://192.168.2.208:9005/stream-galpon" target="_blank" style="color:#3b82f6">HAZ CLIC AQUÍ</a>, luego dale a "Configuración avanzada" y "Acceder".
+            </div>
         </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script>
-        const PROXY = "http://192.168.2.208:9000/stream-galpon";
+        const PROXY = "http://192.168.2.208:9005/stream-galpon";
         const img = document.getElementById("cam");
+        const errLink = document.getElementById("error-link");
 
-        // Bucle de video
+        // Bucle de video con detección de error
         setInterval(() => {
-            img.src = PROXY + "?t=" + Date.now();
-        }, 1200);
+            const testImg = new Image();
+            testImg.src = PROXY + "?t=" + Date.now();
+            testImg.onload = () => {
+                img.src = testImg.src;
+                img.style.display = "block";
+                document.getElementById("loading-text").style.display = "none";
+                errLink.style.display = "none";
+            };
+            testImg.onerror = () => {
+                errLink.style.display = "block";
+            };
+        }, 1500);
 
-        // Firebase
         firebase.initializeApp({ databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com" });
         firebase.database().ref("galpon/actual").on("value", s => {
             const d = s.val();
