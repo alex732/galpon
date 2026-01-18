@@ -2,57 +2,73 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud v10.0 | Control Integral 🇩🇴</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capellán Cloud v11.0 | Sistema Integral RD 🇩🇴</title>
+    
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         :root { --bg: #0a0f1d; --card: #161e31; --blue: #3b82f6; --danger: #ef4444; --success: #22c55e; --purple: #a855f7; --warn: #f59e0b; }
         body { background-color: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        
+        /* Estructura */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 2.5fr 1fr; gap: 20px; max-width: 1600px; margin: auto; }
         .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #2d3748; }
+        
+        /* Alerta visual de pánico */
+        body.panic-mode { animation: panic 1s infinite; }
+        @keyframes panic { 0% { background: #0a0f1d; } 50% { background: #450a0a; } 100% { background: #0a0f1d; } }
+
+        /* Video */
         .video-box { position: relative; background: #000; border-radius: 12px; height: 380px; overflow: hidden; border: 2px solid var(--blue); }
         #foscam-stream { width: 100%; height: 100%; object-fit: contain; }
+
+        /* Gauges */
         .gauges-wrapper { display: flex; flex-direction: column; align-items: center; gap: 10px; background: white; border-radius: 10px; padding: 10px; }
-        
-        /* Recomendaciones Estilizadas */
+
+        /* Recomendaciones */
         .advice-box { margin-top: 15px; padding: 15px; border-left: 5px solid var(--blue); background: rgba(59, 130, 246, 0.1); border-radius: 0 10px 10px 0; }
-        
-        .chart-container { grid-column: span 3; height: 350px; margin-top: 15px; }
-        
-        /* Log Tabla */
-        .log-container { grid-column: span 3; margin-top: 15px; }
-        .log-box { height: 250px; overflow-y: auto; background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 10px; border-radius: 0 0 10px 10px; border: 1px solid #334155; }
-        .log-header { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr 1fr; padding: 10px; background: #1e293b; font-weight: bold; border-radius: 10px 10px 0 0; }
-        .log-entry { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr 1fr; padding: 6px 10px; border-bottom: 1px dotted #222; }
+
+        /* Gráfico */
+        .chart-container { grid-column: span 3; height: 350px; margin-top: 20px; }
+
+        /* Log de Eventos (Tabla) */
+        .log-container { grid-column: span 3; margin-top: 20px; }
+        .log-header { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr 1fr; padding: 12px; background: #1e293b; font-weight: bold; border-radius: 10px 10px 0 0; border-bottom: 2px solid var(--blue); }
+        .log-box { height: 300px; overflow-y: auto; background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 10px; border-radius: 0 0 10px 10px; border: 1px solid #334155; }
+        .log-entry { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr 1fr; padding: 8px 12px; border-bottom: 1px solid #222; }
         
         .val-alert { color: var(--danger); font-weight: bold; }
-        button { background: var(--blue); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
+        button { background: var(--blue); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #2563eb; }
     </style>
 </head>
 <body>
 
-<h1 style="text-align:center; color: var(--blue); margin-bottom: 20px;">CAPELLÁN CLOUD - GESTIÓN AVÍCOLA PROFESIONAL 🇩🇴</h1>
+<h1 style="text-align:center; color: var(--blue); margin-bottom: 25px;">CAPELLÁN CLOUD - CONTROL TOTAL 🇩🇴</h1>
 
 <div class="dashboard-grid">
     <div class="card">
-        <h3>LOTE</h3>
-        <div style="font-size: 3rem; color: var(--success); text-align: center;" id="dias-lote">0</div>
-        <div style="text-align:center;">DÍAS DE EDAD</div>
-        <hr style="opacity:0.1; margin:15px 0;">
-        <div id="target-temp" style="color: var(--warn); text-align: center; font-weight: bold;">--</div>
-        <button onclick="reiniciarLote()" style="margin-top:10px;">Ajustar Lote</button>
-        <div id="rain-val" style="font-size: 1.5rem; text-align: center; margin-top:20px;">--</div>
+        <h3 style="text-align:center;">LOTE ACTUAL</h3>
+        <div style="font-size: 3.5rem; color: var(--success); text-align: center; font-weight: bold;" id="dias-lote">0</div>
+        <div style="text-align:center; opacity: 0.8;">DÍAS DE EDAD</div>
+        <hr style="opacity:0.1; margin:20px 0;">
+        <div id="target-temp" style="color: var(--warn); text-align: center; font-weight: bold; font-size: 1.2rem;">--</div>
+        <button onclick="reiniciarLote()" style="margin-top:15px;">Ajustar Fecha Lote</button>
+        <div id="rain-display" style="font-size: 1.5rem; text-align: center; margin-top:30px; font-weight: bold;">☀️ SECO</div>
     </div>
 
     <div>
         <div class="card video-box">
-            <img id="foscam-stream" src="" alt="Video Stream">
+            <div style="position:absolute; top:10px; left:10px; background:red; padding:2px 10px; border-radius:4px; font-size:0.7rem; font-weight:bold;">VIVO</div>
+            <img id="foscam-stream" src="" alt="Conectando al Servidor Java...">
         </div>
         <div class="card advice-box">
-            <strong style="color: var(--blue)">💡 RECOMENDACIÓN PARA EL GALPÓN:</strong>
-            <p id="advice-text" style="margin: 5px 0 0 0; font-size: 0.95rem;">Iniciando análisis de sensores...</p>
+            <strong style="color: var(--blue)">💡 RECOMENDACIÓN TÉCNICA:</strong>
+            <p id="advice-text" style="margin: 8px 0 0 0; font-size: 1rem;">Esperando datos de sensores...</p>
         </div>
     </div>
 
@@ -66,93 +82,172 @@
     </div>
 
     <div class="card chart-container">
-        <h3>📈 TENDENCIAS (TEMP, HUM, NH3)</h3>
+        <h3>📈 TENDENCIAS (TEMP, HUMEDAD Y AMONÍACO)</h3>
         <canvas id="historialChart"></canvas>
     </div>
 
     <div class="log-container">
         <div class="log-header">
-            <div>HORA</div><div>TEMP</div><div>HUM %</div><div>NH3 PPM</div><div>LLUVIA</div>
+            <div>HORA</div><div>TEMP</div><div>HUM %</div><div>AMONÍACO</div><div>LLUVIA</div>
         </div>
-        <div id="log-display" class="log-box"></div>
+        <div id="log-display" class="log-box">
+            <div style="text-align:center; padding-top:20px;">Esperando sincronización con Firebase...</div>
+        </div>
     </div>
 </div>
 
 <script>
+    // 1. CONFIGURACIÓN FIREBASE
     const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // VIDEO
+    // 2. VIDEO STREAMING
     window.onload = function() {
         const img = document.getElementById("foscam-stream");
-        setInterval(() => { img.src = "http://192.168.2.208:9005/stream-galpon?t=" + Date.now(); }, 1000);
+        const PROXY_URL = "http://192.168.2.208:9005/stream-galpon";
+        setInterval(() => { 
+            img.src = PROXY_URL + "?t=" + Date.now(); 
+        }, 1000);
     };
 
-    // GRÁFICA
+    // 3. GRÁFICA CHART.JS
     const ctx = document.getElementById('historialChart').getContext('2d');
     const mainChart = new Chart(ctx, {
         type: 'line',
         data: { labels: [], datasets: [
-            { label: 'Temp °C', borderColor: '#3b82f6', data: [], yAxisID: 'y' },
-            { label: 'Hum %', borderColor: '#a855f7', data: [], yAxisID: 'y_hum' },
-            { label: 'NH3 PPM', borderColor: '#ef4444', data: [], yAxisID: 'y_nh3' }
+            { label: 'Temp °C', borderColor: '#3b82f6', data: [], yAxisID: 'y', tension: 0.3 },
+            { label: 'Hum %', borderColor: '#a855f7', data: [], yAxisID: 'y_hum', tension: 0.3 },
+            { label: 'NH3 PPM', borderColor: '#ef4444', data: [], yAxisID: 'y_nh3', tension: 0.3 }
         ]},
         options: {
             responsive: true, maintainAspectRatio: false,
             scales: {
-                y: { type: 'linear', position: 'left', grid: {color:'#334155'} },
-                y_hum: { type: 'linear', position: 'right', grid: {display:false} },
-                y_nh3: { type: 'linear', position: 'right', grid: {display:false} }
-            }
+                y: { type: 'linear', position: 'left', grid: {color:'#334155'}, ticks: {color: '#3b82f6'} },
+                y_hum: { type: 'linear', position: 'right', grid: {display: false}, ticks: {color: '#a855f7'} },
+                y_nh3: { type: 'linear', position: 'right', grid: {display: false}, offset: true, ticks: {color: '#ef4444'} }
+            },
+            plugins: { legend: { labels: { color: 'white' } } }
         }
     });
 
-    // FIREBASE & LOGICA
+    // 4. GAUGES Y LÓGICA DE DATOS
     google.charts.load('current', {'packages':['gauge']});
     google.charts.setOnLoadCallback(() => {
         let chT = new google.visualization.Gauge(document.getElementById('g_t'));
         let chH = new google.visualization.Gauge(document.getElementById('g_h'));
         let chN = new google.visualization.Gauge(document.getElementById('g_n'));
-        let opts = { width: 180, height: 180, redFrom: 32, redTo: 45, yellowFrom: 29, yellowTo: 32, max: 45 };
+        
+        let opts = { width: 180, height: 180, redFrom: 32, redTo: 45, yellowFrom: 29, yellowTo: 32, greenFrom: 20, greenTo: 29, max: 45, minorTicks: 5 };
 
-        // Cargar historial inicial
+        // CARGAR HISTORIAL AL INICIAR
         db.ref('galpon/historial').limitToLast(30).once('value', (snap) => {
-            snap.forEach((child) => {
-                const v = child.val();
-                mainChart.data.labels.push(v.hora);
-                mainChart.data.datasets[0].data.push(v.temp);
-                mainChart.data.datasets[1].data.push(v.hum);
-                mainChart.data.datasets[2].data.push(v.nh3);
-            });
-            mainChart.update();
+            if(snap.exists()){
+                mainChart.data.labels = [];
+                mainChart.data.datasets.forEach(d => d.data = []);
+                snap.forEach((child) => {
+                    const v = child.val();
+                    mainChart.data.labels.push(v.hora);
+                    mainChart.data.datasets[0].data.push(v.temp);
+                    mainChart.data.datasets[1].data.push(v.hum);
+                    mainChart.data.datasets[2].data.push(v.nh3);
+                });
+                mainChart.update();
+            }
         });
 
-        let ultimaGrab = 0;
+        let ultimaGrabacion = 0;
+
+        // ESCUCHAR DATOS EN VIVO
         db.ref('galpon/actual').on('value', (snap) => {
             const d = snap.val();
             if(d) {
-                // Actualizar Relojes
-                let dtT = google.visualization.arrayToDataTable([['Label','Value'],['Temp', d.temperatura]]); chT.draw(dtT, opts);
-                let dtH = google.visualization.arrayToDataTable([['Label','Value'],['Hum', d.humedad]]); chH.draw(dtH, {...opts, redFrom:80, max:100});
-                let dtN = google.visualization.arrayToDataTable([['Label','Value'],['NH3', d.nh3_ppm]]); chN.draw(dtN, {...opts, redFrom:20, max:50});
+                // Actualizar Gauges (Relojes)
+                let dtT = google.visualization.arrayToDataTable([['Label', 'Value'], ['Temp', parseFloat(d.temperatura)]]);
+                chT.draw(dtT, opts);
+                
+                let dtH = google.visualization.arrayToDataTable([['Label', 'Value'], ['Hum', parseFloat(d.humedad)]]);
+                chH.draw(dtH, {...opts, redFrom: 80, max: 100});
+                
+                let dtN = google.visualization.arrayToDataTable([['Label', 'Value'], ['NH3', parseFloat(d.nh3_ppm)]]);
+                chN.draw(dtN, {...opts, redFrom: 20, max: 50});
 
-                document.getElementById('rain-val').innerText = d.lluvia === "SI" ? "🌧️ LLUEVE" : "☀️ SECO";
-                document.getElementById('rain-val').style.color = d.lluvia === "SI" ? "#3b82f6" : "#f59e0b";
+                // Lluvia
+                document.getElementById('rain-display').innerText = d.lluvia === "SI" ? "🌧️ LLUEVE" : "☀️ SECO";
+                document.getElementById('rain-display').style.color = d.lluvia === "SI" ? "#3b82f6" : "#f59e0b";
 
-                // Guardar cada 15 min
-                if(Date.now() - ultimaGrab > 900000) {
-                    const hora = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                    db.ref('galpon/historial').push({ hora: hora, temp: d.temperatura, hum: d.humedad, nh3: d.nh3_ppm });
-                    ultimaGrab = Date.now();
+                // Memoria Permanente (Cada 15 minutos)
+                const ahora = Date.now();
+                if(ahora - ultimaGrabacion > 900000) {
+                    const horaActual = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    db.ref('galpon/historial').push({ 
+                        hora: horaActual, temp: d.temperatura, hum: d.humedad, nh3: d.nh3_ppm 
+                    });
+                    ultimaGrabacion = ahora;
+                    
+                    // Añadir punto a gráfica
+                    mainChart.data.labels.push(horaActual);
+                    mainChart.data.datasets[0].data.push(d.temperatura);
+                    mainChart.data.datasets[1].data.push(d.humedad);
+                    mainChart.data.datasets[2].data.push(d.nh3_ppm);
+                    if(mainChart.data.labels.length > 30) {
+                        mainChart.data.labels.shift();
+                        mainChart.data.datasets.forEach(ds => ds.data.shift());
+                    }
+                    mainChart.update();
                 }
-                actualizarTodo(d);
+
+                // Actualizar Log y Lógica
+                actualizarInterfaz(d);
             }
         });
     });
 
-    function actualizarTodo(d) {
+    function actualizarInterfaz(d) {
+        // Días Lote
         const start = new Date(localStorage.getItem('batchStart') || new Date());
         const days = Math.floor((new Date() - start) / (1000*60*60*24));
         document.getElementById('dias-lote').innerText = days;
-        let ideal = 32; if(days > 7) ideal = 29; if(days > 14
+
+        // Meta Temp
+        let ideal = 32; if(days > 7) ideal = 29; if(days > 14) ideal = 26; if(days > 21) ideal = 23;
+        document.getElementById('target-temp').innerText = `Temp. Ideal: ${ideal}°C`;
+
+        // Alerta Pánico
+        if(d.temperatura > 33 || d.nh3_ppm > 25) document.body.classList.add('panic-mode');
+        else document.body.classList.remove('panic-mode');
+
+        // RECOMENDACIÓN
+        const adv = document.getElementById('advice-text');
+        if(d.temperatura > (ideal + 3)) adv.innerText = "⚠️ CALOR: Active ventiladores. Los pollos en RD sufren estrés térmico sobre los 32°C.";
+        else if(d.nh3_ppm > 15) adv.innerText = "⚠️ AMONÍACO: Nivel alto. Ventile para proteger pulmones y ojos del lote.";
+        else if(d.humedad > 85 && d.lluvia === "SI") adv.innerText = "🌧️ ALTA HUMEDAD: Lluvia detectada. Cuide que la cama no se humedezca.";
+        else adv.innerText = "✅ CONFORT: Las condiciones actuales son óptimas para la edad del lote.";
+
+        // REGISTRO TABULAR (LOG)
+        const log = document.getElementById('log-display');
+        const horaLog = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        
+        const entry = `
+            <div class="log-entry">
+                <div style="color: #3b82f6;">${horaLog}</div>
+                <div class="${d.temperatura > 32 ? 'val-alert' : ''}">${d.temperatura}°C</div>
+                <div>${d.humedad}%</div>
+                <div class="${d.nh3_ppm > 20 ? 'val-alert' : ''}">${d.nh3_ppm} PPM</div>
+                <div style="color: ${d.lluvia === 'SI' ? '#3b82f6' : '#f59e0b'}">${d.lluvia}</div>
+            </div>`;
+        
+        // Si es el primer mensaje, borrar el texto de "Esperando..."
+        if(log.innerHTML.includes("Esperando")) log.innerHTML = "";
+        
+        log.innerHTML = entry + log.innerHTML;
+        if(log.childNodes.length > 50) log.removeChild(log.lastChild);
+    }
+
+    function reiniciarLote() {
+        const f = prompt("Ingrese fecha de inicio (AAAA-MM-DD):", new Date().toISOString().split('T')[0]);
+        if(f) { localStorage.setItem('batchStart', new Date(f).toISOString()); location.reload(); }
+    }
+</script>
+</body>
+</html>
