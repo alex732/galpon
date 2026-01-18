@@ -1,37 +1,25 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Capellán IA - Monitoreo Broiler</title>
+    <title>Capellán IA - Monitoreo de Suelo</title>
+    <script>
+        // Esta función refresca la imagen cada 500 milisegundos (2 fotos por segundo)
+        // para simular video usando el link que te funciona.
+        function refrescar() {
+            document.getElementById("camara").src = "http://localhost:9005/foto.jpg?t=" + new Date().getTime();
+        }
+        setInterval(refrescar, 500); 
+    </script>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; text-align: center; }
-        .container { margin-top: 20px; }
-        .video-box { border: 5px solid #ffcc00; display: inline-block; background: black; }
-        .status { margin-top: 20px; padding: 15px; background: #333; display: inline-block; border-radius: 10px; width: 80%; }
-        h1 { color: #ffcc00; }
+        body { background: #1a1a1a; color: #fbff00; text-align: center; font-family: sans-serif; }
+        .box { border: 5px solid #fbff00; display: inline-block; margin-top: 20px; background: #000; }
     </style>
 </head>
 <body>
-
-    <h1>🚀 Sistema Capellán IA</h1>
-    <p>Galpón República Dominicana - Monitoreo en Tiempo Real</p>
-
-    <div class="container">
-        <div class="video-box">
-            <img src="http://localhost:9005" width="800" height="450" alt="Esperando Video...">
-        </div>
+    <h1>MONITOREO DE GALPÓN - ALTURA 6 PIES</h1>
+    <div class="box">
+        <img id="camara" src="http://localhost:9005" width="800" height="450">
     </div>
-
-    <div class="status">
-        <h3>Registro de Actividad IA</h3>
-        <div id="log">Conectando con CapellanIAController...</div>
-    </div>
-
-    <script>
-        // Esto es un simulador básico, el Log real se ve en la consola de Java.
-        setInterval(() => {
-            // Aquí podrías hacer un fetch a un archivo log.txt si decides guardarlo en Java
-        }, 5000);
-    </script>
+    <p>Estado: Mapeando 29 metros de largo...</p>
 </body>
 </html>
