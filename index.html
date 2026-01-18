@@ -2,141 +2,71 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capellán Cloud | Monitoreo Galpón</title>
+    <title>Capellán Cloud | Dashboard Pro</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-color: #1e293b;
-            --accent-color: #3b82f6;
-            --text-color: #f8fafc;
-            --success-color: #22c55e;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h1 { color: var(--accent-color); letter-spacing: 2px; }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1000px;
-            margin-top: 20px;
-        }
-
-        .card {
-            background-color: var(--card-color);
-            padding: 20px;
-            border-radius: 15px;
-            border: 2px solid #334155;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            text-align: center;
-        }
-
-        .video-container {
-            grid-column: span 1;
-            position: relative;
-        }
-
-        #foscam-stream {
-            width: 100%;
-            height: 350px;
-            background-color: #000;
-            border-radius: 10px;
-            object-fit: contain;
-            border: 1px solid var(--accent-color);
-        }
-
-        .btn-live {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: transform 0.2s;
-            margin-bottom: 15px;
-        }
-
-        .btn-live:hover { transform: scale(1.05); }
-
-        .status-dot {
-            height: 10px;
-            width: 10px;
-            background-color: #64748b;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-        }
-
-        .online { background-color: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
+        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --green: #22c55e; }
+        body { background: var(--bg); color: white; font-family: sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1100px; }
+        .card { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid #334155; text-align: center; }
+        #foscam-stream { width: 100%; height: 300px; background: #000; border-radius: 10px; object-fit: contain; margin-top: 15px; }
+        .val { font-size: 3.5rem; font-weight: bold; margin: 15px 0; }
+        .temp { color: var(--blue); }
+        .nh3 { color: #fbbf24; }
+        .btn { background: var(--green); color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-
     <h1>CAPELLÁN CLOUD 🚦</h1>
-    
-    <div class="dashboard">
-        <div class="card video-container">
-            <h3>VISTA EN VIVO - GALPÓN</h3>
-            <button class="btn-live" onclick="activarMonitoreo()">INICIAR TRANSMISIÓN</button>
-            <img id="foscam-stream" src="" alt="Cámara desconectada">
-            <p id="info-status"><span id="dot" class="status-dot"></span> <span id="text-status">Sistema en espera</span></p>
+    <div class="grid">
+        <div class="card">
+            <h3>CÁMARA GALPÓN</h3>
+            <button class="btn" onclick="iniciarVideo()">ACTIVAR VIDEO</button>
+            <img id="foscam-stream" src="" alt="Presiona Activar">
+            <p id="video-status">Estado: Standby</p>
         </div>
 
         <div class="card">
-            <h3>ESTADO AMBIENTAL</h3>
-            <div style="font-size: 3rem; margin: 20px 0; color: var(--accent-color);" id="temp-val">--°C</div>
-            <p>Temperatura Actual</p>
-            <hr style="border: 0.5px solid #334155;">
-            <div style="font-size: 3rem; margin: 20px 0; color: #fbbf24;" id="nh3-val">-- PPM</div>
-            <p>Nivel de Amoníaco</p>
+            <h3>SENSORES EN TIEMPO REAL</h3>
+            <div class="val temp" id="temp-val">--°C</div>
+            <p>TEMPERATURA</p>
+            <hr style="opacity: 0.1">
+            <div class="val nh3" id="nh3-val">-- PPM</div>
+            <p>AMONÍACO (NH3)</p>
         </div>
     </div>
 
     <script>
-        // Cambia esta IP si la de tu computadora cambia
-        const PROXY_SERVER = "http://192.168.2.208:9005/stream-galpon";
-        let intervalId = null;
+        // 1. CONFIGURACIÓN FIREBASE (Usa tus credenciales)
+        const firebaseConfig = {
+            databaseURL: "https://tuproyecto-default-rtdb.firebaseio.com" 
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        function activarMonitoreo() {
+        // Escuchar cambios en Firebase
+        db.ref('sensores').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('temp-val').innerText = data.temperatura + "°C";
+                document.getElementById('nh3-val').innerText = data.amoniaco + " PPM";
+            }
+        });
+
+        // 2. LÓGICA DE VIDEO
+        function iniciarVideo() {
             const img = document.getElementById("foscam-stream");
-            const textStatus = document.getElementById("text-status");
-            const dot = document.getElementById("dot");
-
-            textStatus.innerText = "Conectando al Proxy...";
+            const status = document.getElementById("video-status");
+            const PROXY = "http://192.168.2.208:9005/stream-galpon";
             
-            // Si ya hay un intervalo, lo limpiamos
-            if(intervalId) clearInterval(intervalId);
-
-            // Pedir una imagen nueva cada segundo (1000ms)
-            intervalId = setInterval(() => {
-                // El timestamp (?t=...) es vital para que el navegador no guarde la foto vieja
-                img.src = PROXY_SERVER + "?t=" + new Date().getTime();
+            status.innerText = "Conectado...";
+            setInterval(() => {
+                img.src = PROXY + "?t=" + Date.now();
             }, 1000);
-
-            img.onload = () => {
-                textStatus.innerText = "EN VIVO";
-                dot.classList.add("online");
-            };
-
-            img.onerror = () => {
-                textStatus.innerText = "ERROR DE CONEXIÓN";
-                dot.classList.remove("online");
-            };
+            
+            img.onload = () => status.innerText = "🔴 EN VIVO";
+            img.onerror = () => status.innerText = "❌ ERROR DE SEÑAL";
         }
     </script>
 </body>
