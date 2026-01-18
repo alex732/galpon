@@ -2,72 +2,139 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Dashboard Pro</title>
+    <title>Capellán Cloud | Sistema Integral Galpón</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --green: #22c55e; }
-        body { background: var(--bg); color: white; font-family: sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1100px; }
-        .card { background: var(--card); padding: 25px; border-radius: 15px; border: 1px solid #334155; text-align: center; }
-        #foscam-stream { width: 100%; height: 300px; background: #000; border-radius: 10px; object-fit: contain; margin-top: 15px; }
-        .val { font-size: 3.5rem; font-weight: bold; margin: 15px 0; }
-        .temp { color: var(--blue); }
-        .nh3 { color: #fbbf24; }
-        .btn { background: var(--green); color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #3b82f6; --danger: #ef4444; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        
+        /* Layout */
+        .grid-main { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; }
+        
+        /* Video */
+        #foscam-stream { width: 100%; height: 450px; background: #000; border-radius: 10px; object-fit: contain; border: 2px solid var(--accent); }
+        
+        /* Sensores */
+        .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .sensor-box { background: #0f172a; padding: 15px; border-radius: 10px; text-align: center; border-left: 4px solid var(--accent); }
+        .val { font-size: 1.8rem; font-weight: bold; display: block; }
+        .label { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; }
+        
+        /* Historial */
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+        .history-table th { background: #334155; padding: 10px; text-align: left; }
+        .history-table td { padding: 10px; border-bottom: 1px solid #334155; }
+        
+        .alert { color: var(--danger); font-weight: bold; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
-    <h1>CAPELLÁN CLOUD 🚦</h1>
-    <div class="grid">
-        <div class="card">
-            <h3>CÁMARA GALPÓN</h3>
-            <button class="btn" onclick="iniciarVideo()">ACTIVAR VIDEO</button>
-            <img id="foscam-stream" src="" alt="Presiona Activar">
-            <p id="video-status">Estado: Standby</p>
+
+<div class="container">
+    <h1 style="text-align: center; color: var(--accent);">CAPELLÁN CLOUD - CONTROL TOTAL 🚦</h1>
+
+    <div class="grid-main">
+        <div>
+            <div class="card">
+                <h3>VISTA EN VIVO (AUTOMÁTICA)</h3>
+                <img id="foscam-stream" src="" alt="Cargando video...">
+                <div id="video-status" style="margin-top:10px; font-size: 0.8rem;">Iniciando flujo...</div>
+            </div>
+
+            <div class="sensor-grid">
+                <div class="sensor-box">
+                    <span class="label">Temperatura</span>
+                    <span class="val" id="temp-val">--°C</span>
+                </div>
+                <div class="sensor-box">
+                    <span class="label">Humedad</span>
+                    <span class="val" id="hum-val">--%</span>
+                </div>
+                <div class="sensor-box">
+                    <span class="label">Amoníaco (NH3)</span>
+                    <span class="val" id="nh3-val">-- PPM</span>
+                </div>
+                <div class="sensor-box">
+                    <span class="label">Lluvia</span>
+                    <span class="val" id="rain-val">--</span>
+                </div>
+            </div>
         </div>
 
         <div class="card">
-            <h3>SENSORES EN TIEMPO REAL</h3>
-            <div class="val temp" id="temp-val">--°C</div>
-            <p>TEMPERATURA</p>
-            <hr style="opacity: 0.1">
-            <div class="val nh3" id="nh3-val">-- PPM</div>
-            <p>AMONÍACO (NH3)</p>
+            <h3>HISTORIAL RECIENTE</h3>
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <th>Temp</th>
+                        <th>NH3</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    </tbody>
+            </table>
         </div>
     </div>
+</div>
 
-    <script>
-        // 1. CONFIGURACIÓN FIREBASE (Usa tus credenciales)
-        const firebaseConfig = {
-            databaseURL: "https://tuproyecto-default-rtdb.firebaseio.com" 
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+<script>
+    // 1. CONFIGURACIÓN FIREBASE
+    const firebaseConfig = { databaseURL: "https://tu-proyecto.firebaseio.com" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        // Escuchar cambios en Firebase
-        db.ref('sensores').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                document.getElementById('temp-val').innerText = data.temperatura + "°C";
-                document.getElementById('nh3-val').innerText = data.amoniaco + " PPM";
+    // 2. VIDEO AUTOMÁTICO AL CARGAR
+    window.onload = function() {
+        const img = document.getElementById("foscam-stream");
+        const status = document.getElementById("video-status");
+        const PROXY = "http://192.168.2.208:9005/stream-galpon";
+
+        setInterval(() => {
+            img.src = PROXY + "?t=" + Date.now();
+        }, 1200);
+
+        img.onload = () => status.innerHTML = "🔴 <span style='color:#22c55e'>SISTEMA EN VIVO</span>";
+        img.onerror = () => status.innerHTML = "❌ <span style='color:#ef4444'>ERROR: REVISA EL SERVIDOR JAVA</span>";
+    };
+
+    // 3. DATOS EN TIEMPO REAL Y ALERTAS
+    db.ref('sensores').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if(data) {
+            // Actualizar interfaz
+            document.getElementById('temp-val').innerText = data.temperatura + "°C";
+            document.getElementById('hum-val').innerText = data.humedad + "%";
+            document.getElementById('nh3-val').innerText = data.amoniaco + " PPM";
+            document.getElementById('rain-val').innerText = data.lluvia ? "SÍ" : "NO";
+
+            // Alerta de Amoníaco
+            const nh3Box = document.getElementById('nh3-val');
+            if(data.amoniaco > 20) {
+                nh3Box.classList.add('alert');
+            } else {
+                nh3Box.classList.remove('alert');
             }
-        });
 
-        // 2. LÓGICA DE VIDEO
-        function iniciarVideo() {
-            const img = document.getElementById("foscam-stream");
-            const status = document.getElementById("video-status");
-            const PROXY = "http://192.168.2.208:9005/stream-galpon";
-            
-            status.innerText = "Conectado...";
-            setInterval(() => {
-                img.src = PROXY + "?t=" + Date.now();
-            }, 1000);
-            
-            img.onload = () => status.innerText = "🔴 EN VIVO";
-            img.onerror = () => status.innerText = "❌ ERROR DE SEÑAL";
+            // Agregar al historial automáticamente (simulado en tabla)
+            agregarHistorial(data.temperatura, data.amoniaco);
         }
-    </script>
+    });
+
+    function agregarHistorial(t, n) {
+        const tbody = document.getElementById('history-body');
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const row = `<tr><td>${now}</td><td>${t}°C</td><td>${n} PPM</td></tr>`;
+        tbody.insertAdjacentHTML('afterbegin', row);
+        
+        // Mantener solo los últimos 10 registros
+        if(tbody.rows.length > 10) tbody.deleteRow(10);
+    }
+</script>
+
 </body>
 </html>
