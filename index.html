@@ -2,100 +2,214 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Semáforo RD 🇩🇴</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capellán Cloud | Control Maestro</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; }
-        body { background: var(--bg); color: white; font-family: sans-serif; padding: 20px; }
-        .main-container { max-width: 1200px; margin: auto; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; margin-bottom: 20px; text-align: center; }
-        .gauge-container { display: flex; justify-content: space-around; flex-wrap: wrap; background: white; border-radius: 10px; padding: 20px; margin-top: 15px; }
-        #foscam-stream { width: 100%; height: 350px; background: #000; border-radius: 10px; object-fit: contain; border: 2px solid var(--blue); }
-        .advice-box { background: #334155; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 5px solid var(--blue); text-align: left; }
+        :root {
+            --bg-body: #0a0f1d;
+            --bg-card: #161e31;
+            --accent: #3b82f6;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 2.5fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #2d3748;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        h2 { margin-top: 0; font-size: 1.2rem; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+
+        /* Estilo Video */
+        .video-box { position: relative; border-radius: 12px; overflow: hidden; background: #000; height: 450px; }
+        #foscam-stream { width: 100%; height: 100%; object-fit: contain; }
+        .live-tag { position: absolute; top: 15px; left: 15px; background: rgba(239, 68, 68, 0.8); padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+
+        /* Gauges */
+        .gauges-wrapper {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #ffffff; /* Fondo blanco solo para los gauges para mejor visibilidad */
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        /* Log de Eventos e Historial */
+        .log-container {
+            height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #1e293b;
+        }
+        .log-entry { margin-bottom: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; }
+        .log-time { color: var(--accent); margin-right: 10px; }
+        .status-ok { color: var(--success); }
+        .status-alert { color: var(--danger); font-weight: bold; }
+
+        /* Consejos de Mejores Prácticas */
+        .advice-card {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--accent);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 1000px) {
+            .dashboard-container { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
-<div class="main-container">
-    <h1 style="text-align:center; color: var(--blue);">CAPELLÁN CLOUD - MONITOREO CRÍTICO</h1>
+<div class="dashboard-container">
+    
+    <div class="left-col">
+        <div class="card video-box">
+            <div class="live-tag">🔴 EN VIVO - GALPÓN</div>
+            <img id="foscam-stream" src="" alt="Conectando al servidor Java...">
+        </div>
 
-    <div class="card">
-        <img id="foscam-stream" src="" alt="Cargando video...">
-        <div id="v-status">Iniciando flujo...</div>
+        <div class="card" style="margin-top: 20px;">
+            <h2>📊 INDICADORES AMBIENTALES (SEMAFORIZACIÓN)</h2>
+            <div class="gauges-wrapper">
+                <div id="gauge_temp"></div>
+                <div id="gauge_hum"></div>
+                <div id="gauge_nh3"></div>
+            </div>
+            
+            <div class="advice-card">
+                <strong>🇩🇴 MEJORES PRÁCTICAS RD:</strong> 
+                <span id="advice-text">Esperando datos de sensores...</span>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-        <h3 style="color: #1e293b; background: #94a3b8; padding: 5px; border-radius: 5px;">ESTADO DEL AMBIENTE (LÓGICA POLLOS DE ENGORDE)</h3>
-        <div class="gauge-container">
-            <div id="gauge_temp"></div>
-            <div id="gauge_hum"></div>
-            <div id="gauge_nh3"></div>
+    <div class="right-col">
+        <div class="card" style="margin-bottom: 20px;">
+            <h2>☔ ESTADO CLIMA</h2>
+            <div style="text-align: center; font-size: 2rem; padding: 10px;" id="rain-display">
+                --
+            </div>
+            <p style="text-align:center; color: var(--text-dim); font-size: 0.8rem;">Detección de lluvia en tiempo real</p>
         </div>
-        
-        <div class="advice-box">
-            <strong>📋 RECOMENDACIÓN TÉCNICA (RD):</strong>
-            <span id="txt-consejo">Analizando datos en tiempo real...</span>
+
+        <div class="card">
+            <h2>📜 LOG DE MONITOREO</h2>
+            <div id="log-display" class="log-container">
+                <div class="log-entry">Iniciando sistema...</div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    // 1. FIREBASE
+    // 1. FIREBASE CONFIG
     const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 2. CONFIGURAR MEDIDORES (GOOGLE CHARTS)
-    google.charts.load('current', {'packages':['gauge']});
-    google.charts.setOnLoadCallback(iniciarGauges);
-
-    let datTemp, datHum, datNh3, chartTemp, chartHum, chartNh3;
-
-    function iniciarGauges() {
-        // Configuración de Semáforo para RD
-        datTemp = google.visualization.arrayToDataTable([['Label', 'Value'], ['Temp °C', 0]]);
-        chartTemp = new google.visualization.Gauge(document.getElementById('gauge_temp'));
-        let optTemp = { width: 250, height: 250, redFrom: 32, redTo: 45, yellowFrom: 29, yellowTo: 32, greenFrom: 20, greenTo: 29, minorTicks: 5, max: 45 };
-
-        datHum = google.visualization.arrayToDataTable([['Label', 'Value'], ['Hum %', 0]]);
-        chartHum = new google.visualization.Gauge(document.getElementById('gauge_hum'));
-        let optHum = { width: 250, height: 250, redFrom: 80, redTo: 100, yellowFrom: 70, yellowTo: 80, greenFrom: 50, greenTo: 70, minorTicks: 5 };
-
-        datNh3 = google.visualization.arrayToDataTable([['Label', 'Value'], ['NH3 PPM', 0]]);
-        chartNh3 = new google.visualization.Gauge(document.getElementById('gauge_nh3'));
-        let optNh3 = { width: 250, height: 250, redFrom: 20, redTo: 50, yellowFrom: 10, yellowTo: 20, greenFrom: 0, greenTo: 10, minorTicks: 2, max: 50 };
-
-        // Escuchar Firebase
-        db.ref('galpon/actual').on('value', (snapshot) => {
-            const d = snapshot.val();
-            if(d) {
-                // Actualizar Gauges
-                datTemp.setValue(0, 1, d.temperatura); chartTemp.draw(datTemp, optTemp);
-                datHum.setValue(0, 1, d.humedad); chartHum.draw(datHum, optHum);
-                datNh3.setValue(0, 1, d.nh3_ppm); chartNh3.draw(datNh3, optNh3);
-
-                // Lógica de mejores prácticas para pollos en RD
-                actualizarConsejo(d.temperatura, d.nh3_ppm, d.humedad);
-            }
-        });
-    }
-
-    function actualizarConsejo(t, n, h) {
-        const caja = document.getElementById('txt-consejo');
-        if(t > 31) caja.innerHTML = "<strong>ESTRÉS CALÓRICO:</strong> Reduzca densidad o use ventiladores. En RD el calor del mediodía es crítico.";
-        else if(n > 20) caja.innerHTML = "<strong>ALERTA AMONÍACO:</strong> Cambie o remueva cama húmeda. Riesgo de quemaduras en patas y ceguera.";
-        else if(h > 75) caja.innerHTML = "<strong>HUMEDAD ALTA:</strong> Peligro de hongos. Aumente la ventilación cruzada.";
-        else caja.innerHTML = "Condiciones ideales para el crecimiento del lote.";
-    }
-
-    // 3. VIDEO AUTOMÁTICO
+    // 2. VIDEO AUTO-START
     window.onload = function() {
         const img = document.getElementById("foscam-stream");
         const PROXY = "http://192.168.2.208:9005/stream-galpon";
         setInterval(() => { img.src = PROXY + "?t=" + Date.now(); }, 1200);
     };
+
+    // 3. GOOGLE GAUGES
+    google.charts.load('current', {'packages':['gauge']});
+    google.charts.setOnLoadCallback(initCharts);
+
+    let datT, datH, datN, chartT, chartH, chartN;
+
+    function initCharts() {
+        datT = google.visualization.arrayToDataTable([['Label', 'Value'], ['Temp °C', 0]]);
+        chartT = new google.visualization.Gauge(document.getElementById('gauge_temp'));
+        let optT = { width: 200, height: 200, redFrom: 32, redTo: 45, yellowFrom: 29, yellowTo: 32, greenFrom: 20, greenTo: 29, max: 45 };
+
+        datH = google.visualization.arrayToDataTable([['Label', 'Value'], ['Hum %', 0]]);
+        chartH = new google.visualization.Gauge(document.getElementById('gauge_hum'));
+        let optH = { width: 200, height: 200, redFrom: 80, redTo: 100, yellowFrom: 70, yellowTo: 80, greenFrom: 40, greenTo: 70 };
+
+        datN = google.visualization.arrayToDataTable([['Label', 'Value'], ['NH3 PPM', 0]]);
+        chartN = new google.visualization.Gauge(document.getElementById('gauge_nh3'));
+        let optN = { width: 200, height: 200, redFrom: 20, redTo: 50, yellowFrom: 10, yellowTo: 20, greenFrom: 0, greenTo: 10, max: 50 };
+
+        // 4. LECTURA DE DATOS Y LÓGICA RD
+        db.ref('galpon/actual').on('value', (snapshot) => {
+            const d = snapshot.val();
+            if(d) {
+                // Actualizar Medidores
+                datT.setValue(0, 1, d.temperatura); chartT.draw(datT, optT);
+                datH.setValue(0, 1, d.humedad); chartH.draw(datH, optH);
+                datN.setValue(0, 1, d.nh3_ppm); chartN.draw(datN, optN);
+
+                // Lluvia
+                document.getElementById('rain-display').innerText = d.lluvia === "SI" ? "🌧️ LLUEVE" : "☀️ SECO";
+                document.getElementById('rain-display').style.color = d.lluvia === "SI" ? "#3b82f6" : "#f59e0b";
+
+                // Agregar al Log e Historial
+                addLogEntry(d);
+                
+                // Lógica Dominicana Pollos de Engorde
+                checkBestPractices(d);
+            }
+        });
+    }
+
+    function addLogEntry(d) {
+        const log = document.getElementById('log-display');
+        const now = new Date().toLocaleTimeString();
+        let statusClass = d.temperatura > 31 || d.nh3_ppm > 20 ? "status-alert" : "status-ok";
+        
+        const entry = `<div class="log-entry">
+            <span class="log-time">[${now}]</span> 
+            <span class="${statusClass}">T:${d.temperatura}° H:${d.humedad}% N:${d.nh3_ppm}</span>
+        </div>`;
+        
+        log.innerHTML = entry + log.innerHTML;
+        if(log.childNodes.length > 50) log.removeChild(log.lastChild);
+    }
+
+    function checkBestPractices(d) {
+        const txt = document.getElementById('advice-text');
+        if(d.temperatura > 31) txt.innerHTML = "⚠️ <strong>ESTRÉS CALÓRICO:</strong> Activar ventilación forzada inmediatamente. Peligro de mortalidad.";
+        else if(d.nh3_ppm > 20) txt.innerHTML = "⚠️ <strong>NH3 ALTO:</strong> Nivel de amoníaco tóxico. Remueva cama húmeda y aumente flujo de aire.";
+        else if(d.humedad > 80 && d.lluvia === "SI") txt.innerHTML = "🌧️ <strong>LLUVIA Y HUMEDAD:</strong> Cierre cortinas parcialmente para evitar entrada de agua, pero mantenga ventilación central.";
+        else txt.innerHTML = "✅ Condiciones estables para el crecimiento del lote.";
+    }
 </script>
+
 </body>
 </html>
