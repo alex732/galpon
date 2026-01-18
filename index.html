@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud v13.0 | IA Multi-Zona 🇩🇴</title>
+    <title>Capellán Cloud v14.0 | IA Buscadora 🇩🇴</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -13,26 +13,21 @@
         .dashboard-grid { display: grid; grid-template-columns: 1fr 2.5fr 1fr; gap: 20px; max-width: 1600px; margin: auto; }
         .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #2d3748; }
         .video-box { position: relative; background: #000; border-radius: 12px; height: 380px; overflow: hidden; border: 2px solid var(--blue); }
-        #foscam-stream { width: 100%; height: 100%; object-fit: contain; }
-        .gauges-wrapper { display: flex; flex-direction: column; align-items: center; gap: 10px; background: white; border-radius: 10px; padding: 10px; }
+        #foscam-stream, #evidencia-img { width: 100%; height: 100%; object-fit: contain; }
         
-        /* ZONAS IA */
-        .zones-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .zone-card { background: #0a0f1d; padding: 10px; border-radius: 8px; border-top: 3px solid var(--blue); }
-        .zone-card b { font-size: 0.8rem; color: var(--blue); }
-        .zone-card p { font-size: 0.85rem; margin: 5px 0 0 0; line-height: 1.2; color: #cbd5e1; }
+        /* ALERTA DINÁMICA */
+        .alert-box { border-left: 5px solid var(--success); transition: 0.3s; margin-top: 15px; }
+        .panic { border-left-color: var(--danger) !important; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        .chart-container { grid-column: span 3; height: 350px; margin-top: 15px; }
-        .log-container { grid-column: span 3; margin-top: 15px; }
-        .log-header { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr 1fr; padding: 10px; background: #1e293b; font-weight: bold; border-radius: 10px 10px 0 0; }
-        .log-box { height: 200px; overflow-y: auto; background: #000; color: #0f0; font-family: monospace; padding: 10px; border: 1px solid #334155; }
-        .log-entry { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1.5fr 1fr; padding: 5px 10px; border-bottom: 1px solid #222; }
+        .evidence-container { margin-top: 10px; border-radius: 8px; overflow: hidden; display: none; border: 1px solid #334155; }
+        .gauges-wrapper { display: flex; flex-direction: column; align-items: center; gap: 10px; background: white; border-radius: 10px; padding: 10px; }
         button { background: var(--blue); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<h1 style="text-align:center; color: var(--blue); margin-bottom: 20px;">CAPELLÁN CLOUD - INSPECCIÓN AUTOMATIZADA 🇩🇴</h1>
+<h1 style="text-align:center; color: var(--blue);">CAPELLÁN CLOUD - BÚSQUEDA ACTIVA 🇩🇴</h1>
 
 <div class="dashboard-grid">
     <div class="card">
@@ -40,21 +35,22 @@
         <div style="font-size: 3rem; color: var(--success); text-align: center;" id="dias-lote">0</div>
         <div style="text-align:center;">DÍAS</div>
         <hr style="opacity:0.1; margin:15px 0;">
-        <div id="target-temp" style="color: var(--warn); text-align: center; font-weight: bold;">--</div>
-        <button onclick="reiniciarLote()" style="margin-top:10px;">Nuevo Lote</button>
-        <div id="rain-val" style="font-size: 1.2rem; text-align: center; margin-top:20px; font-weight: bold;">--</div>
+        <div id="rain-val" style="font-size: 1.2rem; text-align: center; font-weight: bold;">--</div>
+        <button onclick="reiniciarLote()" style="margin-top:20px;">Reiniciar Ciclo</button>
     </div>
 
     <div>
         <div class="card video-box">
             <img id="foscam-stream" src="">
         </div>
-        <div class="card" style="margin-top: 15px;">
-            <strong style="color: var(--blue)">🔍 REPORTE DE IA POR ZONAS:</strong>
-            <div class="zones-container">
-                <div class="zone-card"><b>📍 ENTRADA (Z1)</b><p id="txt-z1">Esperando ronda...</p></div>
-                <div class="zone-card"><b>📍 CENTRO (Z2)</b><p id="txt-z2">Esperando ronda...</p></div>
-                <div class="zone-card"><b>📍 FONDO (Z3)</b><p id="txt-z3">Esperando ronda...</p></div>
+        
+        <div id="ia-container" class="card alert-box">
+            <strong style="color: var(--blue);">🤖 IA BUSCANDO ANOMALÍAS...</strong>
+            <p id="ia-status" style="margin: 10px 0;">Escaneando el galpón paso a paso...</p>
+            
+            <div id="evidence-box" class="evidence-container">
+                <div style="background: var(--danger); font-size: 0.7rem; padding: 2px 10px; font-weight: bold;">FOTO DEL HALLAZGO</div>
+                <img id="evidencia-img" src="">
             </div>
         </div>
     </div>
@@ -65,15 +61,6 @@
             <div id="g_t"></div><div id="g_h"></div><div id="g_n"></div>
         </div>
     </div>
-
-    <div class="card chart-container">
-        <canvas id="historialChart"></canvas>
-    </div>
-
-    <div class="log-container">
-        <div class="log-header"><div>HORA</div><div>TEMP</div><div>HUM</div><div>NH3</div><div>LLUVIA</div></div>
-        <div id="log-display" class="log-box"></div>
-    </div>
 </div>
 
 <script>
@@ -81,18 +68,36 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // VIDEO
-    const img = document.getElementById("foscam-stream");
-    setInterval(() => { img.src = "http://192.168.2.208:9005/stream-galpon?t=" + Date.now(); }, 1000);
+    // Stream de Video Principal
+    setInterval(() => { 
+        document.getElementById("foscam-stream").src = "http://192.168.2.208:9005/stream-galpon?t=" + Date.now(); 
+    }, 1000);
 
-    // ESCUCHAR ZONAS IA
-    [1, 2, 3].forEach(id => {
-        db.ref('galpon/analisis_ia/zona_' + id).on('value', (snap) => {
-            if(snap.exists()) document.getElementById('txt-z' + id).innerText = snap.val();
-        });
+    // ESCUCHAR HALLAZGOS DE LA IA
+    db.ref('galpon/analisis_ia/hallazgo_critico').on('value', (snap) => {
+        const status = document.getElementById('ia-status');
+        const container = document.getElementById('ia-container');
+        const evidenceBox = document.getElementById('evidence-box');
+        const evidenceImg = document.getElementById('evidencia-img');
+
+        if (snap.exists() && snap.val().alerta !== "NORMAL") {
+            const data = snap.val();
+            status.innerHTML = `<span style="color:var(--danger)">🚨 <b>Hallazgo:</b> ${data.mensaje}</span>`;
+            container.classList.add('panic');
+            
+            // Mostrar la foto de la evidencia
+            if(data.foto_url) {
+                evidenceImg.src = data.foto_url;
+                evidenceBox.style.display = "block";
+            }
+        } else {
+            status.innerHTML = `<span style="color:var(--success)">✅ Todo normal en el último recorrido.</span>`;
+            container.classList.remove('panic');
+            evidenceBox.style.display = "none";
+        }
     });
 
-    // GRÁFICA Y SENSORES
+    // GAUGES (Sensores)
     google.charts.load('current', {'packages':['gauge']});
     google.charts.setOnLoadCallback(() => {
         let chT = new google.visualization.Gauge(document.getElementById('g_t'));
@@ -107,25 +112,12 @@
                 chH.draw(google.visualization.arrayToDataTable([['L','V'],['Hum', d.humedad]]), {...opts, redFrom:80, max:100});
                 chN.draw(google.visualization.arrayToDataTable([['L','V'],['NH3', d.nh3_ppm]]), {...opts, redFrom:20, max:50});
                 document.getElementById('rain-val').innerText = d.lluvia === "SI" ? "🌧️ LLUEVE" : "☀️ SECO";
-                actualizarInterfaz(d);
+                
+                const start = new Date(localStorage.getItem('batchStart') || new Date());
+                document.getElementById('dias-lote').innerText = Math.floor((new Date() - start) / (1000*60*60*24));
             }
         });
     });
-
-    function actualizarInterfaz(d) {
-        const start = new Date(localStorage.getItem('batchStart') || new Date());
-        const days = Math.floor((new Date() - start) / (1000*60*60*24));
-        document.getElementById('dias-lote').innerText = days;
-        
-        const log = document.getElementById('log-display');
-        const entry = `<div class="log-entry">
-            <div>${new Date().toLocaleTimeString()}</div>
-            <div>${d.temperatura}°C</div><div>${d.humedad}%</div>
-            <div>${d.nh3_ppm}</div><div>${d.lluvia}</div>
-        </div>`;
-        log.innerHTML = entry + log.innerHTML;
-        if(log.childNodes.length > 40) log.removeChild(log.lastChild);
-    }
 
     function reiniciarLote() {
         const f = prompt("Fecha inicio (AAAA-MM-DD):");
