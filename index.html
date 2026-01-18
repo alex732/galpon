@@ -2,54 +2,141 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Panel de Control</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capellán Cloud | Monitoreo Galpón</title>
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .card { background: #1e293b; border-radius: 15px; padding: 20px; max-width: 650px; margin: auto; border: 2px solid #3b82f6; }
-        .video-box { width: 100%; height: 400px; background: #000; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        img { width: 100%; height: 100%; object-fit: contain; display: none; }
-        .btn { background: #22c55e; color: white; padding: 15px 30px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
-        .status { color: #94a3b8; font-size: 13px; margin-top: 10px; }
+        :root {
+            --bg-color: #0f172a;
+            --card-color: #1e293b;
+            --accent-color: #3b82f6;
+            --text-color: #f8fafc;
+            --success-color: #22c55e;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--accent-color); letter-spacing: 2px; }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #334155;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .video-container {
+            grid-column: span 1;
+            position: relative;
+        }
+
+        #foscam-stream {
+            width: 100%;
+            height: 350px;
+            background-color: #000;
+            border-radius: 10px;
+            object-fit: contain;
+            border: 1px solid var(--accent-color);
+        }
+
+        .btn-live {
+            background-color: var(--success-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.2s;
+            margin-bottom: 15px;
+        }
+
+        .btn-live:hover { transform: scale(1.05); }
+
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #64748b;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .online { background-color: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
     </style>
 </head>
 <body>
+
     <h1>CAPELLÁN CLOUD 🚦</h1>
-    <div class="card">
-        <button class="btn" onclick="iniciarVideo()">CONECTAR CÁMARA</button>
-        <div class="video-box">
-            <img id="stream" src="">
-            <p id="msg">Esperando conexión...</p>
+    
+    <div class="dashboard">
+        <div class="card video-container">
+            <h3>VISTA EN VIVO - GALPÓN</h3>
+            <button class="btn-live" onclick="activarMonitoreo()">INICIAR TRANSMISIÓN</button>
+            <img id="foscam-stream" src="" alt="Cámara desconectada">
+            <p id="info-status"><span id="dot" class="status-dot"></span> <span id="text-status">Sistema en espera</span></p>
         </div>
-        <p id="debug" class="status">Estado: Servidor Java en puerto 9005</p>
+
+        <div class="card">
+            <h3>ESTADO AMBIENTAL</h3>
+            <div style="font-size: 3rem; margin: 20px 0; color: var(--accent-color);" id="temp-val">--°C</div>
+            <p>Temperatura Actual</p>
+            <hr style="border: 0.5px solid #334155;">
+            <div style="font-size: 3rem; margin: 20px 0; color: #fbbf24;" id="nh3-val">-- PPM</div>
+            <p>Nivel de Amoníaco</p>
+        </div>
     </div>
 
     <script>
-        // USA TU IP LOCAL
-        const PROXY_URL = "http://192.168.2.208:9005/stream-galpon";
+        // Cambia esta IP si la de tu computadora cambia
+        const PROXY_SERVER = "http://192.168.2.208:9005/stream-galpon";
+        let intervalId = null;
 
-        function iniciarVideo() {
-            const img = document.getElementById("stream");
-            const msg = document.getElementById("msg");
-            const debug = document.getElementById("debug");
+        function activarMonitoreo() {
+            const img = document.getElementById("foscam-stream");
+            const textStatus = document.getElementById("text-status");
+            const dot = document.getElementById("dot");
 
-            msg.innerText = "Cargando imagen...";
+            textStatus.innerText = "Conectando al Proxy...";
             
-            // Intentar cargar una imagen cada 1.2 segundos
-            setInterval(() => {
-                const tmpImg = new Image();
-                tmpImg.src = PROXY_URL + "?t=" + Date.now();
-                
-                tmpImg.onload = () => {
-                    img.src = tmpImg.src;
-                    img.style.display = "block";
-                    msg.style.display = "none";
-                    debug.innerText = "✅ Transmisión activa";
-                };
+            // Si ya hay un intervalo, lo limpiamos
+            if(intervalId) clearInterval(intervalId);
 
-                tmpImg.onerror = () => {
-                    debug.innerText = "❌ Bloqueo de seguridad o Servidor apagado.";
-                };
-            }, 1200);
+            // Pedir una imagen nueva cada segundo (1000ms)
+            intervalId = setInterval(() => {
+                // El timestamp (?t=...) es vital para que el navegador no guarde la foto vieja
+                img.src = PROXY_SERVER + "?t=" + new Date().getTime();
+            }, 1000);
+
+            img.onload = () => {
+                textStatus.innerText = "EN VIVO";
+                dot.classList.add("online");
+            };
+
+            img.onerror = () => {
+                textStatus.innerText = "ERROR DE CONEXIÓN";
+                dot.classList.remove("online");
+            };
         }
     </script>
 </body>
