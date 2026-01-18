@@ -2,159 +2,152 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud v4.0 | Control Avícola RD 🇩🇴</title>
+    <title>Capellán Cloud v5.0 | Gráficas y Control 🇩🇴</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #0a0f1d; --card: #161e31; --blue: #3b82f6; --danger: #ef4444; --success: #22c55e; }
-        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 20px; transition: 0.3s; }
+        body { background-color: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; transition: 0.3s; }
         
-        /* Alerta Visual de Pánico */
         body.panic-mode { animation: panic 1s infinite; }
         @keyframes panic { 0% { background: #0a0f1d; } 50% { background: #450a0a; } 100% { background: #0a0f1d; } }
 
-        .dashboard { display: grid; grid-template-columns: 1fr 2.5fr 1fr; gap: 20px; max-width: 1500px; margin: auto; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #2d3748; text-align: center; }
+        .dashboard { display: grid; grid-template-columns: 1fr 3fr; gap: 20px; max-width: 1600px; margin: auto; }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #2d3748; }
         
-        /* Video */
-        .video-container { position: relative; background: #000; border-radius: 12px; height: 450px; overflow: hidden; border: 2px solid var(--blue); }
+        .video-container { background: #000; border-radius: 12px; height: 350px; overflow: hidden; border: 2px solid var(--blue); position: relative; }
         #foscam-stream { width: 100%; height: 100%; object-fit: contain; }
 
-        /* Gauges */
-        .gauge-flex { display: flex; flex-direction: column; align-items: center; gap: 10px; background: #f8fafc; border-radius: 10px; padding: 10px; }
+        .gauges-container { display: flex; justify-content: space-around; background: #fff; border-radius: 12px; padding: 10px; margin-top: 20px; }
         
-        /* Log */
-        .log-box { height: 350px; overflow-y: auto; background: #000; color: #00ff00; font-family: monospace; padding: 10px; border-radius: 10px; text-align: left; font-size: 0.8rem; }
-        .log-entry { border-bottom: 1px solid #1a1a1a; padding: 4px 0; }
+        .chart-container { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #2d3748; margin-top: 20px; height: 300px; }
         
-        .btn-lote { background: var(--blue); color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        .log-box { height: 200px; overflow-y: auto; background: #000; color: #00ff00; font-family: monospace; padding: 10px; border-radius: 10px; font-size: 0.8rem; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<h1 style="text-align:center; color: var(--blue);">CAPELLÁN CLOUD - GESTIÓN DE POLLOS DE ENGORDE 🇩🇴</h1>
+<h1 style="text-align:center; color: var(--blue);">CAPELLÁN CLOUD - ANÁLISIS DE DATOS 📈</h1>
 
 <div class="dashboard">
     <div class="card">
-        <h3>LOTE ACTUAL</h3>
-        <div style="font-size: 3rem; color: var(--success);" id="dias-lote">0</div>
-        <div style="font-size: 1.2rem;">DÍAS DE EDAD</div>
+        <h3>EDAD DEL LOTE</h3>
+        <div style="font-size: 3rem; color: var(--success); text-align: center;" id="dias-lote">0</div>
+        <div style="text-align:center;">DÍAS</div>
         <hr style="opacity: 0.1; margin: 20px 0;">
-        <div id="target-temp" style="color: #f59e0b;">Temp. Ideal: --°C</div>
-        <button class="btn-lote" onclick="ajustarFecha()">Reiniciar Lote</button>
-        <hr style="opacity: 0.1; margin: 20px 0;">
-        <h4>LLUVIA</h4>
-        <div id="rain-val" style="font-size: 1.5rem;">--</div>
+        <div id="target-temp" style="color: #f59e0b; text-align: center;">Temp. Ideal: --°C</div>
+        <button onclick="ajustarFecha()" style="width:100%; margin-top:10px; cursor:pointer;">Reiniciar Lote</button>
+        
+        <div class="log-box" id="log-display"></div>
     </div>
 
     <div>
         <div class="video-container">
-            <div style="position:absolute; top:10px; left:10px; background:red; padding:2px 8px; border-radius:4px; font-size:0.7rem;">LIVE</div>
-            <img id="foscam-stream" src="" alt="Conectando al servidor Java...">
+            <img id="foscam-stream" src="" alt="Cargando video...">
         </div>
-        <div class="card" style="margin-top:20px; text-align: left; border-left: 5px solid var(--blue);">
-            <strong style="color:var(--blue)">💡 MEJORES PRÁCTICAS RD:</strong>
-            <p id="advice-text">Analizando clima del galpón...</p>
-        </div>
-    </div>
 
-    <div class="card">
-        <h3>SENSORES</h3>
-        <div class="gauge-flex">
+        <div class="gauges-container">
             <div id="g_temp"></div>
             <div id="g_hum"></div>
             <div id="g_nh3"></div>
         </div>
+
+        <div class="chart-container">
+            <canvas id="tendenciasChart"></canvas>
+        </div>
     </div>
 </div>
 
-<div class="card" style="margin-top: 20px;">
-    <h3>LOG DE MONITOREO E HISTORIAL</h3>
-    <div id="log-display" class="log-box"></div>
-</div>
-
 <script>
-    // 1. CONFIGURACIÓN FIREBASE
+    // 1. FIREBASE
     const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Fecha inicial (se guarda en localStorage para que no se borre)
-    if(!localStorage.getItem('fechaInicio')) localStorage.setItem('fechaInicio', new Date().toISOString());
-
-    function ajustarFecha() {
-        const nueva = prompt("Ingrese fecha de inicio (AAAA-MM-DD):", new Date().toISOString().split('T')[0]);
-        if(nueva) { localStorage.setItem('fechaInicio', new Date(nueva).toISOString()); location.reload(); }
-    }
-
-    // 2. VIDEO AUTOMÁTICO (Cada 1 seg)
+    // 2. VIDEO
     window.onload = function() {
         const img = document.getElementById("foscam-stream");
         const PROXY = "http://192.168.2.208:9005/stream-galpon";
         setInterval(() => { img.src = PROXY + "?t=" + Date.now(); }, 1000);
     };
 
-    // 3. GAUGES (SEMAFORIZACIÓN)
+    // 3. CONFIGURACIÓN DE LA GRÁFICA (Chart.js)
+    const ctx = document.getElementById('tendenciasChart').getContext('2d');
+    const tendenciasChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                { label: 'Temperatura °C', borderColor: '#3b82f6', data: [], tension: 0.4, yAxisID: 'y' },
+                { label: 'NH3 PPM', borderColor: '#ef4444', data: [], tension: 0.4, yAxisID: 'y1' }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { type: 'linear', display: true, position: 'left', grid: {color:'#334155'} },
+                y1: { type: 'linear', display: true, position: 'right', grid: {drawOnChartArea: false} }
+            },
+            plugins: { legend: { labels: { color: 'white' } } }
+        }
+    });
+
+    // 4. GOOGLE GAUGES Y FIREBASE
     google.charts.load('current', {'packages':['gauge']});
-    google.charts.setOnLoadCallback(initCharts);
+    google.charts.setOnLoadCallback(() => {
+        let datT = google.visualization.arrayToDataTable([['Label', 'Value'], ['Temp', 0]]);
+        let chartT = new google.visualization.Gauge(document.getElementById('g_temp'));
+        let datH = google.visualization.arrayToDataTable([['Label', 'Value'], ['Hum', 0]]);
+        let chartH = new google.visualization.Gauge(document.getElementById('g_hum'));
+        let datN = google.visualization.arrayToDataTable([['Label', 'Value'], ['NH3', 0]]);
+        let chartN = new google.visualization.Gauge(document.getElementById('g_nh3'));
 
-    let datT, datH, datN, chartT, chartH, chartN;
+        let opts = { width: 180, height: 180, minorTicks: 5 };
 
-    function initCharts() {
-        datT = google.visualization.arrayToDataTable([['Label', 'Value'], ['Temp °C', 0]]);
-        chartT = new google.visualization.Gauge(document.getElementById('g_temp'));
-        datH = google.visualization.arrayToDataTable([['Label', 'Value'], ['Hum %', 0]]);
-        chartH = new google.visualization.Gauge(document.getElementById('g_hum'));
-        datN = google.visualization.arrayToDataTable([['Label', 'Value'], ['NH3 PPM', 0]]);
-        chartN = new google.visualization.Gauge(document.getElementById('g_nh3'));
-
-        let optT = { width: 200, height: 200, redFrom: 32, redTo: 45, yellowFrom: 29, yellowTo: 32, greenFrom: 20, greenTo: 29, max: 45 };
-        let optH = { width: 200, height: 200, redFrom: 80, redTo: 100, yellowFrom: 70, yellowTo: 80, greenFrom: 40, greenTo: 70 };
-        let optN = { width: 200, height: 200, redFrom: 20, redTo: 50, yellowFrom: 10, yellowTo: 20, greenFrom: 0, greenTo: 10, max: 50 };
-
-        // LECTURA DESDE RUTA: galpon/actual
         db.ref('galpon/actual').on('value', (snapshot) => {
             const d = snapshot.val();
             if(d) {
-                datT.setValue(0, 1, d.temperatura); chartT.draw(datT, optT);
-                datH.setValue(0, 1, d.humedad); chartH.draw(datH, optH);
-                datN.setValue(0, 1, d.nh3_ppm); chartN.draw(datN, optN);
-                document.getElementById('rain-val').innerText = d.lluvia;
-                
-                updateLogic(d);
+                // Actualizar Gauges
+                datT.setValue(0, 1, d.temperatura); chartT.draw(datT, {...opts, redFrom: 32, redTo: 45, yellowFrom: 29, yellowTo: 32});
+                datH.setValue(0, 1, d.humedad); chartH.draw(datH, {...opts, redFrom: 80, redTo: 100});
+                datN.setValue(0, 1, d.nh3_ppm); chartN.draw(datN, {...opts, redFrom: 20, redTo: 50});
+
+                // Actualizar Gráfica (Máximo 20 puntos)
+                const hora = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                if (tendenciasChart.data.labels.length > 20) {
+                    tendenciasChart.data.labels.shift();
+                    tendenciasChart.data.datasets[0].data.shift();
+                    tendenciasChart.data.datasets[1].data.shift();
+                }
+                tendenciasChart.data.labels.push(hora);
+                tendenciasChart.data.datasets[0].data.push(d.temperatura);
+                tendenciasChart.data.datasets[1].data.push(d.nh3_ppm);
+                tendenciasChart.update();
+
+                // Lógica Lote y Alerta
+                updateBatchInfo(d);
             }
         });
-    }
+    });
 
-    function updateLogic(d) {
-        // Cálculo de días del lote
-        const inicio = new Date(localStorage.getItem('fechaInicio'));
+    function updateBatchInfo(d) {
+        const inicio = new Date(localStorage.getItem('fechaInicio') || new Date());
         const dias = Math.floor((new Date() - inicio) / (1000*60*60*24));
         document.getElementById('dias-lote').innerText = dias;
 
-        // Temperatura ideal según mejores prácticas (Pollos de Engorde)
-        let ideal = 32; // Sem 1
-        if(dias > 7) ideal = 29; // Sem 2
-        if(dias > 14) ideal = 26; // Sem 3
-        if(dias > 21) ideal = 23; // Sem 4+
-        document.getElementById('target-temp').innerText = `Temp. Ideal: ${ideal}°C`;
-
-        // Alerta de Pánico (Parpadeo)
-        if(d.temperatura > 33 || d.nh3_ppm > 25) document.body.classList.add('panic-mode');
+        if(d.temperatura > 33) document.body.classList.add('panic-mode');
         else document.body.classList.remove('panic-mode');
 
-        // Consejos RD
-        const adv = document.getElementById('advice-text');
-        if(d.temperatura > (ideal + 3)) adv.innerText = "⚠️ CALOR EXTREMO: Active ventiladores. Los pollos en RD sufren estrés térmico sobre los 32°C.";
-        else if(d.nh3_ppm > 15) adv.innerText = "⚠️ AMONÍACO ALTO: Nivel peligroso para los pulmones. Ventile el galpón.";
-        else adv.innerText = "✅ Condiciones estables para la edad del lote.";
-
-        // Log Histórico
         const log = document.getElementById('log-display');
-        const time = new Date().toLocaleTimeString();
-        log.innerHTML = `<div class="log-entry">[${time}] Lectura: T:${d.temperatura}° | H:${d.humedad}% | NH3:${d.nh3_ppm}</div>` + log.innerHTML;
-        if(log.childNodes.length > 50) log.removeChild(log.lastChild);
+        log.innerHTML = `<div>[${new Date().toLocaleTimeString()}] T:${d.temperatura}° N:${d.nh3_ppm}</div>` + log.innerHTML;
+    }
+
+    function ajustarFecha() {
+        const nueva = prompt("Fecha inicio lote (AAAA-MM-DD):");
+        if(nueva) { localStorage.setItem('fechaInicio', new Date(nueva).toISOString()); location.reload(); }
     }
 </script>
 </body>
