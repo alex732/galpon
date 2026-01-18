@@ -2,52 +2,42 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Avícola RD 🇩🇴</title>
+    <title>Capellán Cloud | Control Semáforo RD 🇩🇴</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --green: #22c55e; --warn: #fbbf24; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 20px; }
-        .grid-container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1300px; margin: auto; }
-        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; margin-bottom: 20px; }
+        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; }
+        body { background: var(--bg); color: white; font-family: sans-serif; padding: 20px; }
+        .main-container { max-width: 1200px; margin: auto; }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; margin-bottom: 20px; text-align: center; }
+        .gauge-container { display: flex; justify-content: space-around; flex-wrap: wrap; background: white; border-radius: 10px; padding: 20px; margin-top: 15px; }
         #foscam-stream { width: 100%; height: 350px; background: #000; border-radius: 10px; object-fit: contain; border: 2px solid var(--blue); }
-        .sensor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
-        .sensor-box { background: #0f172a; padding: 10px; border-radius: 10px; text-align: center; border-bottom: 3px solid var(--blue); }
-        .val { font-size: 1.5rem; font-weight: bold; display: block; }
-        .label { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; }
-        canvas { max-height: 250px; }
-        .best-practice { font-size: 0.85rem; color: var(--warn); padding: 10px; border: 1px dashed var(--warn); border-radius: 8px; margin-top: 10px; }
+        .advice-box { background: #334155; padding: 15px; border-radius: 10px; margin-top: 10px; border-left: 5px solid var(--blue); text-align: left; }
     </style>
 </head>
 <body>
 
-<h1 style="text-align:center; color: var(--blue);">CAPELLÁN CLOUD - GESTIÓN AVÍCOLA 🇩🇴</h1>
+<div class="main-container">
+    <h1 style="text-align:center; color: var(--blue);">CAPELLÁN CLOUD - MONITOREO CRÍTICO</h1>
 
-<div class="grid-container">
-    <div>
-        <div class="card">
-            <img id="foscam-stream" src="" alt="Cargando stream...">
-            <p id="v-status" style="font-size:0.8rem">Conectando...</p>
-            <div id="recomendacion" class="best-practice">Analizando condiciones...</div>
-        </div>
-
-        <div class="sensor-grid">
-            <div class="sensor-box"><span class="label">Temperatura</span><span class="val" id="t-val">--°C</span></div>
-            <div class="sensor-box"><span class="label">Humedad</span><span class="val" id="h-val">--%</span></div>
-            <div class="sensor-box"><span class="label">NH3 (Amoníaco)</span><span class="val" id="n-val">-- PPM</span></div>
-            <div class="sensor-box"><span class="label">Lluvia</span><span class="val" id="r-val">--</span></div>
-        </div>
-
-        <div class="card" style="margin-top:20px;">
-            <h3>Evolución de Temperatura (24h)</h3>
-            <canvas id="tempChart"></canvas>
-        </div>
+    <div class="card">
+        <img id="foscam-stream" src="" alt="Cargando video...">
+        <div id="v-status">Iniciando flujo...</div>
     </div>
 
     <div class="card">
-        <h3>HISTORIAL DE DATOS</h3>
-        <div id="log-avicola" style="font-size: 0.8rem; line-height: 1.6;"></div>
+        <h3 style="color: #1e293b; background: #94a3b8; padding: 5px; border-radius: 5px;">ESTADO DEL AMBIENTE (LÓGICA POLLOS DE ENGORDE)</h3>
+        <div class="gauge-container">
+            <div id="gauge_temp"></div>
+            <div id="gauge_hum"></div>
+            <div id="gauge_nh3"></div>
+        </div>
+        
+        <div class="advice-box">
+            <strong>📋 RECOMENDACIÓN TÉCNICA (RD):</strong>
+            <span id="txt-consejo">Analizando datos en tiempo real...</span>
+        </div>
     </div>
 </div>
 
@@ -57,50 +47,55 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 2. CONFIGURACIÓN DE GRÁFICA
-    const ctx = document.getElementById('tempChart').getContext('2d');
-    const tempChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: [], datasets: [{ label: 'Temp °C', data: [], borderColor: '#3b82f6', tension: 0.3 }] },
-        options: { scales: { y: { beginAtZero: false }, x: { display: false } } }
-    });
+    // 2. CONFIGURAR MEDIDORES (GOOGLE CHARTS)
+    google.charts.load('current', {'packages':['gauge']});
+    google.charts.setOnLoadCallback(iniciarGauges);
+
+    let datTemp, datHum, datNh3, chartTemp, chartHum, chartNh3;
+
+    function iniciarGauges() {
+        // Configuración de Semáforo para RD
+        datTemp = google.visualization.arrayToDataTable([['Label', 'Value'], ['Temp °C', 0]]);
+        chartTemp = new google.visualization.Gauge(document.getElementById('gauge_temp'));
+        let optTemp = { width: 250, height: 250, redFrom: 32, redTo: 45, yellowFrom: 29, yellowTo: 32, greenFrom: 20, greenTo: 29, minorTicks: 5, max: 45 };
+
+        datHum = google.visualization.arrayToDataTable([['Label', 'Value'], ['Hum %', 0]]);
+        chartHum = new google.visualization.Gauge(document.getElementById('gauge_hum'));
+        let optHum = { width: 250, height: 250, redFrom: 80, redTo: 100, yellowFrom: 70, yellowTo: 80, greenFrom: 50, greenTo: 70, minorTicks: 5 };
+
+        datNh3 = google.visualization.arrayToDataTable([['Label', 'Value'], ['NH3 PPM', 0]]);
+        chartNh3 = new google.visualization.Gauge(document.getElementById('gauge_nh3'));
+        let optNh3 = { width: 250, height: 250, redFrom: 20, redTo: 50, yellowFrom: 10, yellowTo: 20, greenFrom: 0, greenTo: 10, minorTicks: 2, max: 50 };
+
+        // Escuchar Firebase
+        db.ref('galpon/actual').on('value', (snapshot) => {
+            const d = snapshot.val();
+            if(d) {
+                // Actualizar Gauges
+                datTemp.setValue(0, 1, d.temperatura); chartTemp.draw(datTemp, optTemp);
+                datHum.setValue(0, 1, d.humedad); chartHum.draw(datHum, optHum);
+                datNh3.setValue(0, 1, d.nh3_ppm); chartNh3.draw(datNh3, optNh3);
+
+                // Lógica de mejores prácticas para pollos en RD
+                actualizarConsejo(d.temperatura, d.nh3_ppm, d.humedad);
+            }
+        });
+    }
+
+    function actualizarConsejo(t, n, h) {
+        const caja = document.getElementById('txt-consejo');
+        if(t > 31) caja.innerHTML = "<strong>ESTRÉS CALÓRICO:</strong> Reduzca densidad o use ventiladores. En RD el calor del mediodía es crítico.";
+        else if(n > 20) caja.innerHTML = "<strong>ALERTA AMONÍACO:</strong> Cambie o remueva cama húmeda. Riesgo de quemaduras en patas y ceguera.";
+        else if(h > 75) caja.innerHTML = "<strong>HUMEDAD ALTA:</strong> Peligro de hongos. Aumente la ventilación cruzada.";
+        else caja.innerHTML = "Condiciones ideales para el crecimiento del lote.";
+    }
 
     // 3. VIDEO AUTOMÁTICO
     window.onload = function() {
         const img = document.getElementById("foscam-stream");
         const PROXY = "http://192.168.2.208:9005/stream-galpon";
         setInterval(() => { img.src = PROXY + "?t=" + Date.now(); }, 1200);
-        img.onload = () => document.getElementById("v-status").innerHTML = "🔴 EN VIVO";
     };
-
-    // 4. LÓGICA DE SENSORES Y MEJORES PRÁCTICAS RD
-    db.ref('galpon/actual').on('value', (snapshot) => {
-        const d = snapshot.val();
-        if(d) {
-            document.getElementById('t-val').innerText = d.temperatura + "°C";
-            document.getElementById('h-val').innerText = d.humedad + "%";
-            document.getElementById('n-val').innerText = d.nh3_ppm + " PPM";
-            document.getElementById('r-val').innerText = d.lluvia;
-
-            // Actualizar Gráfica
-            const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            tempChart.data.labels.push(time);
-            tempChart.data.datasets[0].data.push(d.temperatura);
-            if(tempChart.data.labels.length > 15) { tempChart.data.labels.shift(); tempChart.data.datasets[0].data.shift(); }
-            tempChart.update();
-
-            // MEJORES PRÁCTICAS RD (POLLOS DE ENGORDE)
-            let consejo = "Condiciones óptimas.";
-            if(d.temperatura > 31) consejo = "⚠️ ALERTA CALOR: Active ventiladores o nebulizadores (Estrés calórico RD).";
-            if(d.nh3_ppm > 20) consejo = "⚠️ ALERTA AMONÍACO: Aumente ventilación lateral para evitar problemas respiratorios.";
-            if(d.humedad > 80) consejo = "⚠️ HUMEDAD ALTA: Cuidado con la cama mojada. Riesgo de coccidiosis.";
-            document.getElementById('recomendacion').innerText = "💡 PRÁCTICA SUGERIDA: " + consejo;
-
-            // Historial rápido
-            const log = document.getElementById('log-avicola');
-            log.innerHTML = `<div>[${time}] T: ${d.temperatura}°C | H: ${d.humedad}% | NH3: ${d.nh3_ppm}</div>` + log.innerHTML;
-        }
-    });
 </script>
 </body>
 </html>
