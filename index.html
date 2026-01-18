@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Capellán Cloud | Control Total Galpón</title>
+    <title>Capellán Cloud | Control Total</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --danger: #ef4444; --green: #22c55e; }
-        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        :root { --bg: #0f172a; --card: #1e293b; --blue: #3b82f6; --green: #22c55e; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 20px; }
         .grid-container { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; max-width: 1200px; margin: auto; }
         .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #334155; }
         #foscam-stream { width: 100%; height: 400px; background: #000; border-radius: 10px; object-fit: contain; border: 2px solid var(--blue); }
@@ -18,8 +18,6 @@
         .history-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
         .history-table th { text-align: left; padding: 10px; background: #334155; }
         .history-table td { padding: 10px; border-bottom: 1px solid #334155; }
-        .alert { color: var(--danger); animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.4; } }
     </style>
 </head>
 <body>
@@ -31,7 +29,7 @@
         <div class="card">
             <h3>VIDEO EN TIEMPO REAL</h3>
             <img id="foscam-stream" src="" alt="Cargando stream...">
-            <p id="v-status" style="font-size:0.8rem">Iniciando conexión local...</p>
+            <p id="v-status" style="font-size:0.8rem">Iniciando flujo automático...</p>
         </div>
 
         <div class="sensor-grid">
@@ -43,7 +41,7 @@
     </div>
 
     <div class="card">
-        <h3>HISTORIAL DE DATOS</h3>
+        <h3>HISTORIAL RECIENTE</h3>
         <table class="history-table">
             <thead><tr><th>Hora</th><th>Temp</th><th>NH3</th></tr></thead>
             <tbody id="h-body"></tbody>
@@ -52,8 +50,8 @@
 </div>
 
 <script>
-    // 1. REEMPLAZA CON TU URL DE FIREBASE REAL
-    const firebaseConfig = { databaseURL: "https://capellan-f7253-default-rtdb.firebaseio.com" };
+    // 1. CONFIGURACIÓN FIREBASE (URL ACTUALIZADA)
+    const firebaseConfig = { databaseURL: "https://galpon-capellan-default-rtdb.firebaseio.com/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
@@ -65,28 +63,24 @@
 
         setInterval(() => { img.src = PROXY + "?t=" + Date.now(); }, 1200);
         img.onload = () => vStatus.innerHTML = "🔴 <span style='color:var(--green)'>EN VIVO</span>";
-        img.onerror = () => vStatus.innerHTML = "❌ <span style='color:var(--danger)'>BLOQUEO DE NAVEGADOR (HTTP)</span>";
+        img.onerror = () => vStatus.innerHTML = "❌ <span style='color:#ef4444'>ERROR: REVISA SERVIDOR JAVA O PERMISOS</span>";
     };
 
-    // 3. SENSORES E HISTORIAL
-    db.ref('sensores').on('value', (snapshot) => {
+    // 3. SENSORES (RUTA: galpon/actual)
+    db.ref('galpon/actual').on('value', (snapshot) => {
         const d = snapshot.val();
         if(d) {
             document.getElementById('t-val').innerText = d.temperatura + "°C";
             document.getElementById('h-val').innerText = d.humedad + "%";
-            document.getElementById('n-val').innerText = d.amoniaco + " PPM";
-            document.getElementById('r-val').innerText = d.lluvia ? "SÍ" : "NO";
+            document.getElementById('n-val').innerText = d.nh3_ppm + " PPM";
+            document.getElementById('r-val').innerText = d.lluvia;
 
-            // Alerta si el Amoníaco es alto
-            if(d.amoniaco > 20) document.getElementById('n-val').classList.add('alert');
-            else document.getElementById('n-val').classList.remove('alert');
-
-            // Guardar en tabla
+            // Guardar en tabla de historial
             const body = document.getElementById('h-body');
             const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            const row = `<tr><td>${time}</td><td>${d.temperatura}°</td><td>${d.amoniaco}</td></tr>`;
+            const row = `<tr><td>${time}</td><td>${d.temperatura}°</td><td>${d.nh3_ppm}</td></tr>`;
             body.insertAdjacentHTML('afterbegin', row);
-            if(body.rows.length > 12) body.deleteRow(12);
+            if(body.rows.length > 10) body.deleteRow(10);
         }
     });
 </script>
