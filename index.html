@@ -3,159 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Galpón - Broiler DR</title>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <title>Galpón Lite - Monitoreo Remoto</title>
     
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #e0e0e0; margin: 0; padding: 20px; }
-        .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
-        /* Panel de Sensores */
-        .card { background: #2d2d2d; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        #gauges_div { display: flex; justify-content: space-around; height: 200px; }
-        
-        /* Cámara y Presets */
-        .camera-box { text-align: center; }
-        #live-stream { width: 100%; max-width: 400px; border: 2px solid #444; border-radius: 4px; }
-        .preset-gallery { display: flex; gap: 10px; overflow-x: auto; margin-top: 10px; }
-        .preset-img { width: 80px; height: 60px; object-fit: cover; border: 1px solid #555; }
-
-        /* Consola Verbose */
-        .console-container { grid-column: span 2; }
-        #verbose-console { 
-            background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; 
-            height: 200px; overflow-y: scroll; padding: 10px; font-size: 0.85rem;
-            border: 1px solid #444; border-radius: 4px;
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #38bdf8;
+            --text-main: #f1f5f9;
         }
-        .log-error { color: #ff5555; }
-        .log-warn { color: #ffb86c; }
-        .log-success { color: #50fa7b; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-main); 
+            margin: 0; padding: 20px; 
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .container { max-width: 900px; width: 100%; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        
+        /* Dashboard Layout */
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+        
+        /* Gauges */
+        #gauges_container { display: flex; justify-content: space-around; flex-wrap: wrap; min-height: 160px; }
+        
+        /* Presets de Suelo */
+        .presets-gallery { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+            gap: 10px; margin-top: 15px; 
+        }
+        .preset-card { border: 1px solid #334155; border-radius: 8px; overflow: hidden; background: #000; }
+        .preset-card img { width: 100%; height: auto; display: block; opacity: 0.8; transition: 0.3s; }
+        .preset-card img:hover { opacity: 1; }
+        .preset-label { font-size: 10px; text-align: center; padding: 5px; color: var(--accent); }
 
-        button { background: #4a90e2; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #357abd; }
+        .status-lite { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <h2>Panel de Control Galpón (Home: X=0, Y=-50)</h2>
-
-    <div class="grid-container">
-        <div class="card">
-            <h3>Sensores en Tiempo Real</h3>
-            <div id="gauges_div"></div>
-            <hr>
-            <button onclick="iniciarEscaneoInicial()">Iniciar Escaneo Inicial (Presets)</button>
-        </div>
-
-        <div class="card camera-box">
-            <h3>Cámara en Vivo</h3>
-            <img src="http://192.168.1.XX:81/stream" id="live-stream" alt="Esperando Stream...">
-            <h4>Presets de Suelo</h4>
-            <div id="presets-gallery" class="preset-gallery">
-                </div>
-        </div>
-
-        <div class="card console-container">
-            <h3>Verbose Output System</h3>
-            <div id="verbose-console"></div>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>Control Galpón <span style="color:var(--accent)">Lite</span></h1>
+        <div class="status-lite">Visualización Remota | GitHub Pages</div>
     </div>
 
-    <script>
-        // --- CONFIGURACIÓN FIREBASE ---
-        const firebaseConfig = {
-            apiKey: "TU_API_KEY",
-            databaseURL: "TU_DATABASE_URL",
-            projectId: "TU_PROJECT_ID",
-            storageBucket: "TU_STORAGE_BUCKET"
+    <div class="dashboard">
+        <div class="card">
+            <h3>Sensores Ambientales</h3>
+            <div id="gauges_container"></div>
+            <p style="font-size: 12px; color: #64748b; text-align: center;">
+                Actualizado vía Firebase Realtime
+            </p>
+        </div>
+
+        <div class="card">
+            <h3>Presets de Escaneo Inicial</h3>
+            <p style="font-size: 13px;">Basado en Home Lógico: <strong>X:0, Y:-50</strong></p>
+            <div id="presets_gallery" class="presets-gallery">
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- DATOS DE CONFIGURACIÓN ---
+    // Asegúrate de usar tus credenciales de Firebase aquí
+    const firebaseConfig = {
+        apiKey: "TU_API_KEY",
+        databaseURL: "TU_DATABASE_URL",
+        projectId: "TU_PROJECT_ID",
+        storageBucket: "TU_STORAGE_BUCKET"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- LÓGICA DE GAUGES (GOOGLE CHARTS) ---
+    google.charts.load('current', {'packages':['gauge']});
+    google.charts.setOnLoadCallback(drawCharts);
+
+    let gaugeData, gaugeOptions, chart;
+
+    function drawCharts() {
+        gaugeData = google.visualization.arrayToDataTable([
+            ['Label', 'Value'],
+            ['Temp °C', 0],
+            ['Hum %', 0]
+        ]);
+
+        gaugeOptions = {
+            width: 400, height: 160,
+            redFrom: 35, redTo: 50,
+            yellowFrom: 30, yellowTo: 35,
+            minorTicks: 5,
+            max: 50,
+            greenFrom: 20, greenTo: 30
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
 
-        // --- GOOGLE GAUGE SETUP ---
-        google.charts.load('current', {'packages':['gauge']});
-        google.charts.setOnLoadCallback(drawGauges);
+        chart = new google.visualization.Gauge(document.getElementById('gauges_container'));
+        chart.draw(gaugeData, gaugeOptions);
 
-        let gaugeData, gaugeOptions, chart;
+        // Vincular con Firebase
+        escucharSensores();
+    }
 
-        function drawGauges() {
-            gaugeData = google.visualization.arrayToDataTable([
-                ['Label', 'Value'],
-                ['Temp', 0],
-                ['Humedad', 0],
-                ['Suelo cm', 0]
-            ]);
-
-            gaugeOptions = {
-                width: 400, height: 180,
-                redFrom: 32, redTo: 50, // Ajustado para Broilers DR
-                yellowFrom: 28, yellowTo: 32,
-                minorTicks: 5,
-                max: 50
-            };
-
-            chart = new google.visualization.Gauge(document.getElementById('gauges_div'));
-            chart.draw(gaugeData, gaugeOptions);
-        }
-
-        // --- VERBOSE LOGGER ---
-        function logger(msg, type = 'info') {
-            const consoleDiv = document.getElementById('verbose-console');
-            const time = new Date().toLocaleTimeString();
-            let colorClass = '';
-            if(type === 'error') colorClass = 'log-error';
-            if(type === 'warn') colorClass = 'log-warn';
-            if(type === 'success') colorClass = 'log-success';
-
-            consoleDiv.innerHTML += `<div class="${colorClass}">[${time}] ${msg}</div>`;
-            consoleDiv.scrollTop = consoleDiv.scrollHeight;
-        }
-
-        // --- LÓGICA DE ESCANEO (XYZ / Cartesian) ---
-        async function iniciarEscaneoInicial() {
-            logger("Iniciando Escaneo Inicial del Galpón completo...", "warn");
-            try {
-                // Posicionar en Home Lógico
-                logger("Moviendo a Home Lógico (X:0, Y:-50)...");
-                await db.ref('comandos/mover').set({ x: 0, y: -50, status: 'pending' });
-
-                // Simulación de escaneo de presets
-                logger("Escaneando cuadrante A1 para presets de suelo...");
-                // Aquí el código que detecta el suelo
-                logger("Ubicación de suelo determinada satisfactoriamente.", "success");
-                
-            } catch (error) {
-                // CATCH BLOCK INCLUIDO EN VERBOSE
-                logger(`FALLO CRÍTICO EN ESCANEO: ${error.message}`, "error");
-            }
-        }
-
-        // --- LISTENER DE DATOS (FIREBASE) ---
+    // --- LISTENERS DE DATOS (FIREBASE) ---
+    function escucharSensores() {
+        // Referencia a la base de datos configurada
         db.ref('galpon/data_actual').on('value', (snapshot) => {
             try {
                 const data = snapshot.val();
                 if (data) {
-                    logger("Data recibida de Firebase correctamente", "success");
-                    
-                    // Actualizar Gauges
-                    gaugeData.setValue(0, 1, data.temp || 0);
-                    gaugeData.setValue(1, 1, data.hum || 0);
-                    gaugeData.setValue(2, 1, data.distancia_suelo || 0);
+                    // Actualizar los Gauges
+                    gaugeData.setValue(0, 1, data.temperatura || 0);
+                    gaugeData.setValue(1, 1, data.humedad || 0);
                     chart.draw(gaugeData, gaugeOptions);
-
-                    // Si hay imagen de preset nueva
-                    if(data.last_preset_url) {
-                        const gallery = document.getElementById('presets-gallery');
-                        gallery.innerHTML += `<img src="${data.last_preset_url}" class="preset-img">`;
-                    }
                 }
-            } catch (e) {
-                logger("Error en el stream de datos: " + e.message, "error");
+            } catch (error) {
+                console.error("Error en lectura Lite: ", error);
             }
         });
+    }
 
-    </script>
+    // Listener para cargar imágenes de Presets (Scan Inicial de Suelo)
+    db.ref('galpon/presets_suelo').limitToLast(6).on('child_added', (snapshot) => {
+        try {
+            const preset = snapshot.val();
+            const gallery = document.getElementById('presets_gallery');
+            
+            const card = document.createElement('div');
+            card.className = 'preset-card';
+            card.innerHTML = `
+                <img src="${preset.url}" alt="Preset">
+                <div class="preset-label">Pos: ${preset.angulo}°</div>
+            `;
+            gallery.prepend(card); // Mostrar el más reciente primero
+        } catch (e) {
+            console.error("Error cargando presets: ", e);
+        }
+    });
+
+</script>
 </body>
 </html>
