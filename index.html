@@ -1,38 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Zentinel IA - Monitor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentinel IA | Live</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 50px; }
-        .val { font-size: 3em; font-weight: bold; }
-        .label { color: #888; text-transform: uppercase; font-size: 0.8em; }
-        .status-pill { padding: 10px 20px; border-radius: 20px; border: 1px solid #333; margin-top: 20px; }
+        body { background: #0a0a0a; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { text-align: center; border: 1px solid #222; padding: 40px; border-radius: 20px; background: #111; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 30px; }
+        .val { font-size: 2.5em; font-weight: 300; letter-spacing: -1px; }
+        .label { color: #555; font-size: 0.7em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+        .status { margin-bottom: 20px; font-size: 0.9em; padding: 5px 15px; border-radius: 15px; display: inline-block; background: #1a1a1a; border: 1px solid #333; }
+        .temp-color { color: #ff5f56; }
+        .hum-color { color: #2196f3; }
+        .nh3-color { color: #ffca28; }
     </style>
 </head>
 <body>
-    <div class="status-pill" id="estado">CONECTANDO...</div>
-    <div class="grid">
-        <div><div class="label">Temperatura</div><div class="val" id="temp">--</div></div>
-        <div><div class="label">Humedad</div><div class="val" id="hum">--</div></div>
-        <div><div class="label">Amoníaco</div><div class="val" id="nh3">--</div></div>
+    <div class="container">
+        <div id="estado" class="status">SINCRONIZANDO...</div>
+        <div class="grid">
+            <div><div class="label">Temperatura</div><div id="temp" class="val temp-color">--</div></div>
+            <div><div class="label">Humedad</div><div id="hum" class="val hum-color">--</div></div>
+            <div><div class="label">Amoníaco</div><div id="nh3" class="val nh3-color">--</div></div>
+        </div>
     </div>
 
     <script>
-        // Configura aquí tus credenciales de Firebase
-        const firebaseConfig = { databaseURL: "TU_URL_AQUÍ" };
+        // Configuración mínima para lectura
+        const firebaseConfig = { databaseURL: "https://zentinel-ia-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database().ref('galpon1');
 
-        db.on('value', (snap) => {
-            const data = snap.val();
-            document.getElementById('temp').innerText = data.temp + "°";
-            document.getElementById('hum').innerText = data.hum + "%";
-            document.getElementById('nh3').innerText = data.nh3;
-            document.getElementById('estado').innerText = data.estado;
-            document.getElementById('estado').style.color = data.estado === "REPOSO" ? "#4caf50" : "#ff9800";
+        db.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                document.getElementById('temp').innerText = data.temp + "°";
+                document.getElementById('hum').innerText = data.hum + "%";
+                document.getElementById('nh3').innerText = data.nh3;
+                document.getElementById('estado').innerText = data.estado;
+                document.getElementById('estado').style.borderColor = data.estado === "REPOSO" ? "#4caf50" : "#ff9800";
+            }
         });
     </script>
 </body>
