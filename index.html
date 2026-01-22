@@ -1,25 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Capellán IA - Monitoreo de Suelo</title>
-    <script>
-        // Esta función refresca la imagen cada 500 milisegundos (2 fotos por segundo)
-        // para simular video usando el link que te funciona.
-        function refrescar() {
-            document.getElementById("camara").src = "http://localhost:9005/foto.jpg?t=" + new Date().getTime();
-        }
-        setInterval(refrescar, 500); 
-    </script>
+    <title>Zentinel IA - Monitor</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #1a1a1a; color: #fbff00; text-align: center; font-family: sans-serif; }
-        .box { border: 5px solid #fbff00; display: inline-block; margin-top: 20px; background: #000; }
+        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; display: flex; flex-direction: column; align-items: center; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 50px; }
+        .val { font-size: 3em; font-weight: bold; }
+        .label { color: #888; text-transform: uppercase; font-size: 0.8em; }
+        .status-pill { padding: 10px 20px; border-radius: 20px; border: 1px solid #333; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h1>MONITOREO DE GALPÓN - ALTURA 6 PIES</h1>
-    <div class="box">
-        <img id="camara" src="http://localhost:9005" width="800" height="450">
+    <div class="status-pill" id="estado">CONECTANDO...</div>
+    <div class="grid">
+        <div><div class="label">Temperatura</div><div class="val" id="temp">--</div></div>
+        <div><div class="label">Humedad</div><div class="val" id="hum">--</div></div>
+        <div><div class="label">Amoníaco</div><div class="val" id="nh3">--</div></div>
     </div>
-    <p>Estado: Mapeando 29 metros de largo...</p>
+
+    <script>
+        // Configura aquí tus credenciales de Firebase
+        const firebaseConfig = { databaseURL: "TU_URL_AQUÍ" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database().ref('galpon1');
+
+        db.on('value', (snap) => {
+            const data = snap.val();
+            document.getElementById('temp').innerText = data.temp + "°";
+            document.getElementById('hum').innerText = data.hum + "%";
+            document.getElementById('nh3').innerText = data.nh3;
+            document.getElementById('estado').innerText = data.estado;
+            document.getElementById('estado').style.color = data.estado === "REPOSO" ? "#4caf50" : "#ff9800";
+        });
+    </script>
 </body>
 </html>
