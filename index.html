@@ -2,47 +2,42 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zentinel IA | Live</title>
+    <title>Zentinel IA | Global Monitor</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #0a0a0a; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { text-align: center; border: 1px solid #222; padding: 40px; border-radius: 20px; background: #111; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 30px; }
-        .val { font-size: 2.5em; font-weight: 300; letter-spacing: -1px; }
-        .label { color: #555; font-size: 0.7em; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
-        .status { margin-bottom: 20px; font-size: 0.9em; padding: 5px 15px; border-radius: 15px; display: inline-block; background: #1a1a1a; border: 1px solid #333; }
-        .temp-color { color: #ff5f56; }
-        .hum-color { color: #2196f3; }
-        .nh3-color { color: #ffca28; }
+        :root { --bg: #0f172a; --card: rgba(30, 41, 59, 0.7); --accent: #38bdf8; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 90%; max-width: 1000px; }
+        .card { background: var(--card); backdrop-filter: blur(10px); padding: 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .val { font-size: 3.5rem; font-weight: 700; margin: 10px 0; color: var(--accent); }
+        .unit { font-size: 1rem; color: #64748b; margin-left: 5px; }
+        .label { text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; color: #94a3b8; }
+        .status-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 30px; border-radius: 50px; background: #000; font-size: 0.8rem; border: 1px solid var(--accent); }
+        .danger { color: #f43f5e !important; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="estado" class="status">SINCRONIZANDO...</div>
-        <div class="grid">
-            <div><div class="label">Temperatura</div><div id="temp" class="val temp-color">--</div></div>
-            <div><div class="label">Humedad</div><div id="hum" class="val hum-color">--</div></div>
-            <div><div class="label">Amoníaco</div><div id="nh3" class="val nh3-color">--</div></div>
-        </div>
+    <div id="status-msg" class="status-bar">SINCRO: ONLINE</div>
+    <div class="dashboard">
+        <div class="card"><div class="label">Temperatura</div><div id="temp" class="val">--</div><div class="label">Grados C</div></div>
+        <div class="card"><div class="label">Humedad</div><div id="hum" class="val">--</div><div class="label">Porcentaje</div></div>
+        <div class="card"><div class="label">Amoníaco</div><div id="nh3" class="val">--</div><div class="label">PPM (Crítico > 20)</div></div>
     </div>
 
     <script>
-        // Configuración mínima para lectura
         const firebaseConfig = { databaseURL: "https://zentinel-ia-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database().ref('galpon1');
-
-        db.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if(data) {
-                document.getElementById('temp').innerText = data.temp + "°";
-                document.getElementById('hum').innerText = data.hum + "%";
-                document.getElementById('nh3').innerText = data.nh3;
-                document.getElementById('estado').innerText = data.estado;
-                document.getElementById('estado').style.borderColor = data.estado === "REPOSO" ? "#4caf50" : "#ff9800";
-            }
+        firebase.database().ref('galpon1').on('value', (s) => {
+            const d = s.val();
+            document.getElementById('temp').innerText = d.temp;
+            document.getElementById('hum').innerText = d.hum;
+            document.getElementById('nh3').innerText = d.nh3;
+            document.getElementById('status-msg').innerText = "ESTADO: " + d.estado;
+            
+            // Alerta visual
+            if(d.nh3 > 20) document.getElementById('nh3').classList.add('danger');
+            else document.getElementById('nh3').classList.remove('danger');
         });
     </script>
 </body>
