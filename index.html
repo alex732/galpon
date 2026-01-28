@@ -3,183 +3,112 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Zentinel Lite 🇩🇴</title>
+    <title>Zentinel Cloud 🇩🇴</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
     <style>
-        /* ESTILO CYBERPUNK LITE */
-        body { background: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; font-size: 13px; height: 100vh; overflow: hidden; }
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 2px solid #334155; padding-bottom: 10px; }
-        .header-title { font-size: 22px; font-weight: bold; letter-spacing: 1px; }
-        .layout-grid { display: grid; grid-template-columns: 200px 1fr 300px; gap: 10px; height: calc(100vh - 60px); }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; }
-        .card-title { font-size: 11px; color: #94a3b8; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+        body { background: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; font-size: 13px; display: grid; gap: 10px; grid-template-columns: 1fr; }
+        @media(min-width: 600px) { body { grid-template-columns: 1fr 1fr; } }
         
-        /* GAUGES */
-        .gauge-box { background: #0f172a; border-radius: 50%; width: 130px; height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 15px auto; border: 5px solid #334155; transition: border-color 0.3s; }
-        .g-green { border-color: #22c55e; color: #4ade80; }
-        .g-red { border-color: #ef4444; color: #f87171; }
-        .val-text { font-size: 26px; font-weight: bold; }
+        .header { grid-column: 1 / -1; border-bottom: 2px solid #334155; padding-bottom: 5px; margin-bottom: 5px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; }
+        .title { color: #94a3b8; font-weight: bold; font-size: 11px; margin-bottom: 5px; text-transform: uppercase; border-bottom: 1px solid #334155; }
         
-        /* VIDEO & MATRIX */
-        .video-main { width: 100%; height: 400px; background: #000; border-radius: 8px; object-fit: cover; border: 2px solid #334155; }
-        .matrix-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 10px; height: 100px; overflow: hidden; }
-        .cam-cell { background: #000; border-radius: 3px; height: 50px; border: 1px solid #334155; position: relative; }
-        .cam-cell img { width: 100%; height: 100%; object-fit: cover; }
-        .cam-tag { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.7); color: white; font-size: 8px; text-align: center; }
-
-        /* CHAT */
-        .chat-container { flex: 1; background: #0f172a; border-radius: 4px; border: 1px solid #334155; display: flex; flex-direction: column; overflow: hidden; }
-        .chat-log { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .msg-ai { align-self: flex-start; background: #334155; padding: 8px 12px; border-radius: 2px 12px 12px 12px; max-width: 85%; }
-        .msg-user { align-self: flex-end; background: #2563eb; padding: 8px 12px; border-radius: 12px 2px 12px 12px; }
-        .chat-input { display: flex; border-top: 1px solid #334155; }
-        .chat-input input { flex: 1; background: #1e293b; border: none; color: white; padding: 10px; outline: none; }
-        .chat-input button { background: #3b82f6; border: none; color: white; padding: 0 15px; cursor: pointer; font-weight: bold; }
-
-        /* RIGHT PANEL */
-        .pi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; font-size: 9px; text-align: center; }
-        .stat-box { background: #0f172a; padding: 5px; border-radius: 4px; border: 1px solid #334155; color: #94a3b8; }
-        .stat-val { color: #38bdf8; font-weight: bold; display: block; font-size: 11px; }
-        .banner-ia { padding: 10px; text-align: center; font-weight: bold; margin-bottom: 5px; border-radius: 4px; font-size: 11px; }
-        .banner-safe { background: #064e3b; color: #34d399; border: 1px solid #059669; }
-        .banner-danger { background: #450a0a; color: #f87171; border: 1px solid #ef4444; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.7; } }
-
-        /* IFRAMES */
-        iframe { border: none; border-radius: 4px; }
+        .grid-sensors { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .sensor-box { background: #0f172a; padding: 10px; border-radius: 4px; text-align: center; border: 1px solid #334155; }
+        .val { font-size: 20px; font-weight: bold; color: #38bdf8; }
+        .lbl { font-size: 10px; color: #94a3b8; }
         
-        .btn { width: 100%; padding: 10px; background: #334155; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 5px; font-weight: bold; }
-        .btn:hover { background: #475569; }
+        .img-box { width: 100%; height: 250px; background: #000; border-radius: 4px; border: 1px solid #334155; overflow: hidden; position: relative; }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+        .overlay { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.7); color: white; padding: 5px; text-align: center; font-size: 11px; }
+        
+        .status-row { display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; }
+        .badge { padding: 2px 6px; border-radius: 3px; background: #334155; }
+        .online { color: #4ade80; } .offline { color: #ef4444; }
+        
+        iframe { border: none; width: 100%; height: 200px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <script>
-        // CAMBIA ESTO POR LA IP DE TU RASPBERRY PI
-        const API_URL = "http://192.168.2.98:9090"; 
-    </script>
-
-    <div class="header-bar">
-        <div class="header-title">ZENTINEL <span style="color:#38bdf8">LITE</span></div>
-        <div id="clock" style="color:#94a3b8; font-family:monospace;">--:--:--</div>
+    <div class="header">
+        <div>ZENTINEL <span style="color:#38bdf8">CLOUD</span></div>
+        <div id="ts" style="font-size:12px; color:#94a3b8; font-family:monospace;">--:--:--</div>
     </div>
 
-    <div class="layout-grid">
-        <div class="col-left">
-            <div class="card">
-                <div class="card-title">SENSORES EN VIVO</div>
-                <div id="bgT" class="gauge-box"><span id="vT" class="val-text">--</span><span class="lbl-text">TEMP °C</span></div>
-                <div id="bgH" class="gauge-box"><span id="vH" class="val-text">--</span><span class="lbl-text">HUM %</span></div>
-                <div id="bgN" class="gauge-box"><span id="vN" class="val-text">--</span><span class="lbl-text">NH3 ppm</span></div>
-                <div id="bgR" class="gauge-box"><span id="vR" style="font-size:30px;">☀️</span><span class="lbl-text">SECO</span></div>
-            </div>
+    <div class="card">
+        <div class="title">SENSORES (TIEMPO REAL)</div>
+        <div class="grid-sensors">
+            <div class="sensor-box"><div id="t" class="val">--</div><div class="lbl">TEMP °C</div></div>
+            <div class="sensor-box"><div id="h" class="val">--</div><div class="lbl">HUM %</div></div>
+            <div class="sensor-box"><div id="n" class="val">--</div><div class="lbl">NH3 ppm</div></div>
+            <div class="sensor-box"><div id="r" class="val">--</div><div class="lbl">LLUVIA</div></div>
         </div>
-
-        <div class="col-center" style="display:flex; flex-direction:column; gap:10px;">
-            <img id="live" class="video-main" src="" alt="Cargando cámara...">
-            <div id="matrix" class="matrix-grid"></div>
-            
-            <div class="card" style="flex:1;">
-                <div class="card-title">CHAT INTELIGENTE (MOONDREAM)</div>
-                <div class="chat-container">
-                    <div id="chat-log" class="chat-log">
-                        <div class="msg-ai">Sistema Lite conectado. ¿En qué puedo ayudar?</div>
-                    </div>
-                    <div class="chat-input">
-                        <input id="chat-in" placeholder="Escribe aquí..." onkeypress="if(event.key==='Enter') sendChat()">
-                        <button onclick="sendChat()">➤</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-right" style="display:flex; flex-direction:column; gap:10px;">
-            <div class="card">
-                <div class="card-title">ESTADO SISTEMA</div>
-                <div class="pi-grid">
-                    <div class="stat-box"><span id="piIP" class="stat-val">--</span>IP</div>
-                    <div class="stat-box"><span id="stArd" class="stat-val">--</span>ARDUINO</div>
-                    <div class="stat-box"><span id="stIA" class="stat-val">--</span>CEREBRO</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">RADAR DOMINICANO</div>
-                <iframe width="100%" height="200" src="https://radar-met2.sna.gob.do/"></iframe>
-            </div>
-
-            <div class="card" style="flex:1;">
-                <div class="card-title">RECOMENDACIONES & LOGS</div>
-                <div id="rec-banner" class="banner-ia">Esperando datos...</div>
-                <div id="logs" style="height:150px; overflow-y:auto; font-family:monospace; font-size:10px; color:#64748b; border-top:1px solid #334155; margin-top:5px; padding-top:5px;"></div>
-            </div>
+        <div class="status-row">
+            <span>MOTOR: <b id="mot" style="color:#eab308">--</b></span>
+            <span>IA: <b id="ia" class="offline">--</b></span>
         </div>
     </div>
 
+    <div class="card">
+        <div class="title">ÚLTIMO ESCANEO VISUAL</div>
+        <div class="img-box">
+            <img id="snap" src="" alt="Esperando datos...">
+            <div id="banner" class="overlay">Conectando...</div>
+        </div>
+        <div id="log" style="font-size:10px; color:#64748b; margin-top:5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+    </div>
+
+    <div class="card" style="grid-column: 1 / -1;">
+        <div class="title">RADAR DOMINICANO (SNA)</div>
+        <iframe src="https://radar-met2.sna.gob.do/"></iframe>
+    </div>
+
     <script>
-        function setG(id, v, min, max) {
-            let el = document.getElementById('v' + id);
-            let bg = document.getElementById('bg' + id);
-            el.innerText = v;
-            let val = parseFloat(v);
-            if (val > max) bg.className = 'gauge-box g-red';
-            else if (val > min) bg.className = 'gauge-box'; // Yellow logic removed for lite simplicity
-            else bg.className = 'gauge-box g-green';
-        }
+        // 1. CONFIGURACIÓN FIREBASE
+        var firebaseConfig = {
+            databaseURL: "https://zentinel-ia-default-rtdb.firebaseio.com/"
+        };
+        firebase.initializeApp(firebaseConfig);
 
-        function sendChat() {
-            var i = document.getElementById('chat-in');
-            var m = i.value;
-            if (!m) return;
-            var h = document.getElementById('chat-log');
-            h.innerHTML += '<div class="msg-user">' + m + '</div>';
-            i.value = '';
-            h.scrollTop = h.scrollHeight;
+        // 2. CONEXIÓN BASE DE DATOS
+        var db = firebase.database();
+        var ref = db.ref('zentinel'); // Nodo raíz donde escribe Java
+
+        // 3. ESCUCHAR CAMBIOS
+        ref.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(!data) return;
+
+            // Actualizar Sensores
+            document.getElementById('t').innerText = data.t;
+            document.getElementById('h').innerText = data.h;
+            document.getElementById('n').innerText = data.n;
             
-            // Enviar a la API Java
-            fetch(API_URL + '/chat', { method: 'POST', body: 'msg=' + encodeURIComponent(m) })
-                .then(r => r.text())
-                .then(t => {
-                    if (t.trim() !== '') {
-                        h.innerHTML += '<div class="msg-ai">' + t + '</div>';
-                        h.scrollTop = h.scrollHeight;
-                    }
-                })
-                .catch(e => h.innerHTML += '<div class="msg-ai" style="color:red">Error conexión: ' + e + '</div>');
-        }
+            let isRain = data.r === "SI";
+            let rEl = document.getElementById('r');
+            rEl.innerText = isRain ? "SI" : "NO";
+            rEl.style.color = isRain ? "#ef4444" : "#4ade80";
 
-        function update() {
-            // Actualizar Imagen
-            document.getElementById('live').src = API_URL + '/live?t=' + new Date().getTime();
+            // Actualizar Imagen (Si hay nueva)
+            if(data.img && data.img.length > 100) {
+                document.getElementById('snap').src = "data:image/jpeg;base64," + data.img;
+            }
 
-            // Actualizar Datos JSON
-            fetch(API_URL + '/update')
-                .then(r => r.json())
-                .then(j => {
-                    setG('T', j.t, 28, 30);
-                    setG('H', j.h, 65, 75);
-                    setG('N', j.n, 15, 25);
-                    
-                    // Lluvia
-                    let isR = j.r == 'SI';
-                    document.getElementById('vR').innerText = isR ? '⛈️' : '☀️';
-                    document.getElementById('bgR').className = 'gauge-box ' + (isR ? 'g-red' : 'g-green');
-
-                    document.getElementById('matrix').innerHTML = j.mat.replace(/src='\/live/g, "src='" + API_URL + "/live"); // Fix local images
-                    document.getElementById('logs').innerHTML = j.v;
-                    document.getElementById('rec-banner').innerHTML = j.banner;
-                    
-                    document.getElementById('piIP').innerText = j.piIP;
-                    document.getElementById('stArd').style.color = j.ard ? '#4ade80' : '#ef4444';
-                    document.getElementById('stArd').innerText = j.ard ? 'ON' : 'OFF';
-                    document.getElementById('stIA').style.color = j.iaOn ? '#4ade80' : '#ef4444';
-                    document.getElementById('stIA').innerText = j.iaOn ? 'ON' : 'OFF';
-
-                    document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-                })
-                .catch(e => console.log("Offline", e));
-        }
-
-        setInterval(update, 1000);
+            // Actualizar Textos
+            document.getElementById('banner').innerHTML = data.banner;
+            document.getElementById('banner').style.background = data.banner.includes('ALERTA') ? 'rgba(239, 68, 68, 0.9)' : 'rgba(0,0,0,0.7)';
+            
+            document.getElementById('mot').innerText = data.mot;
+            document.getElementById('log').innerText = "> " + data.log;
+            document.getElementById('ts').innerText = data.ts;
+            
+            // Status Simulado (Si hay datos recientes, asumimos IA on)
+            document.getElementById('ia').className = 'online';
+            document.getElementById('ia').innerText = 'ONLINE';
+        });
     </script>
 </body>
 </html>
