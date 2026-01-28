@@ -8,7 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        /* --- ESTILO CYBERPUNK CLEAN --- */
+        /* --- ESTILO CYBERPUNK INDUSTRIAL --- */
         :root {
             --bg: #0f172a;
             --card: #1e293b;
@@ -18,7 +18,7 @@
             --green: #22c55e;
             --red: #ef4444;
             --yellow: #eab308;
-            --blue: #3b82f6;
+            --blue: #38bdf8;
         }
 
         body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 10px; }
@@ -26,69 +26,83 @@
         /* HEADER */
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 15px; }
         .brand { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
-        .live-dot { height: 10px; width: 10px; background-color: var(--green); border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 5px; }
+        .live-dot { height: 10px; width: 10px; background-color: var(--sub); border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 5px; }
+        .online-dot { background-color: var(--green) !important; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         /* GRID PRINCIPAL */
-        .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        @media(min-width: 768px) { .grid { grid-template-columns: 300px 1fr; } }
-
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .title { color: var(--sub); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
-
-        /* --- SENSORES TIPO RELOJ (GAUGES) --- */
-        .sensors-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; justify-items: center; }
-        
-        .gauge {
-            width: 100px; height: 100px;
-            border-radius: 50%;
-            background: var(--bg);
-            border: 6px solid var(--border); /* Color base */
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: border-color 0.5s ease, box-shadow 0.5s ease;
-            position: relative;
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+        @media(min-width: 900px) { 
+            .main-grid { grid-template-columns: 1fr 1fr; } /* 2 Columnas en PC */
         }
 
-        .gauge.safe { border-color: var(--green); box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
-        .gauge.warn { border-color: var(--yellow); box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
-        .gauge.danger { border-color: var(--red); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; }
+        .title { color: var(--sub); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; display: flex; justify-content: space-between; }
 
-        .gauge-val { font-size: 24px; font-weight: bold; }
-        .gauge-lbl { font-size: 10px; color: var(--sub); margin-top: -2px; }
-        .gauge-icon { font-size: 14px; margin-bottom: 2px; }
-
-        /* --- IMAGEN & MAPAS --- */
-        .img-box { width: 100%; height: 300px; background: #000; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--border); }
-        .img-box img { width: 100%; height: 100%; object-fit: cover; }
+        /* --- SENSORES TIPO RELOJ --- */
+        .sensors-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; justify-items: center; margin-bottom: 10px; }
         
+        .gauge {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 5px solid var(--border);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: border-color 0.5s ease;
+            position: relative;
+        }
+        .gauge.safe { border-color: var(--green); }
+        .gauge.warn { border-color: var(--yellow); }
+        .gauge.danger { border-color: var(--red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+
+        .gauge-val { font-size: 20px; font-weight: bold; }
+        .gauge-lbl { font-size: 9px; color: var(--sub); }
+        .gauge-icon { font-size: 12px; margin-bottom: 2px; }
+
+        /* --- CÁMARA --- */
+        .img-box { width: 100%; height: 250px; background: #000; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+        .img-box img { width: 100%; height: 100%; object-fit: cover; }
         .ia-banner { 
             position: absolute; bottom: 0; left: 0; right: 0; 
             background: rgba(0,0,0,0.8); color: white; 
-            padding: 8px; font-size: 12px; text-align: center; 
-            border-top: 1px solid var(--border);
+            padding: 8px; font-size: 11px; text-align: center; border-top: 1px solid var(--border);
         }
 
-        iframe { width: 100%; height: 250px; border: none; border-radius: 8px; }
+        /* --- MAPAS BOXES (DUAL) --- */
+        .maps-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        @media(min-width: 600px) { .maps-grid { grid-template-columns: 1fr 1fr; } } /* Lado a lado en tablets/PC */
 
-        /* LOGS */
-        .log-box { font-family: monospace; font-size: 11px; color: var(--sub); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .ts { font-size: 10px; color: var(--sub); text-align: right; margin-top: 5px; }
+        .map-box { 
+            background: #000; border: 1px solid var(--border); border-radius: 8px; 
+            height: 250px; overflow: hidden; position: relative; 
+        }
+        .map-label { 
+            position: absolute; top: 0; left: 0; background: rgba(0,0,0,0.7); 
+            color: var(--blue); font-size: 9px; padding: 4px 8px; font-weight: bold; 
+            border-bottom-right-radius: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+            z-index: 10;
+        }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* LOGS & FOOTER */
+        .status-bar { display: flex; justify-content: space-between; font-size: 10px; color: var(--sub); margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="brand"><span style="color:var(--blue)">ZENTINEL</span> CLOUD</div>
-        <div style="font-size:12px; color:var(--sub); display:flex; align-items:center;">
-            <div id="status-dot" class="live-dot" style="background:gray"></div> 
+        <div class="brand">ZENTINEL <span style="color:var(--blue)">CLOUD</span></div>
+        <div style="font-size:11px; color:var(--sub); display:flex; align-items:center;">
+            <div id="status-dot" class="live-dot"></div> 
             <span id="conn-text">Conectando...</span>
         </div>
     </div>
 
-    <div class="grid">
+    <div class="main-grid">
+        
         <div class="card">
-            <div class="title">SENSORES EN VIVO</div>
-            <div class="sensors-container">
+            <div class="title"><span>METRÍA INTERNA</span> <span>⏱️ EN VIVO</span></div>
+            <div class="sensors-row">
                 <div id="g-t" class="gauge">
                     <div class="gauge-icon">🌡️</div>
                     <div id="v-t" class="gauge-val">--</div>
@@ -106,33 +120,42 @@
                 </div>
                 <div id="g-r" class="gauge">
                     <div id="i-r" class="gauge-icon">☁️</div>
-                    <div id="v-r" class="gauge-val" style="font-size:18px">--</div>
+                    <div id="v-r" class="gauge-val" style="font-size:16px">--</div>
                     <div class="gauge-lbl">LLUVIA</div>
                 </div>
             </div>
-            <div class="log-box" style="margin-top:15px; text-align:center;">
-                MOTOR: <span id="mot" style="color:var(--yellow); font-weight:bold;">--</span>
+            <div class="status-bar">
+                <span>MOTOR: <b id="mot" style="color:var(--yellow)">--</b></span>
+                <span id="ts">--:--:--</span>
             </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:10px;">
-            <div class="card" style="padding:5px;">
-                <div class="img-box">
-                    <img id="snap" src="" alt="Esperando imagen...">
-                    <div id="banner" class="ia-banner">Esperando datos de la IA...</div>
+        <div class="card">
+            <div class="title"><span>VISIÓN ARTIFICIAL</span> <span>📷 SNAPSHOT</span></div>
+            <div class="img-box">
+                <img id="snap" src="" alt="Esperando imagen...">
+                <div id="banner" class="ia-banner">Esperando análisis IA...</div>
+            </div>
+        </div>
+
+        <div class="card" style="grid-column: 1 / -1;">
+            <div class="title"><span>CONTEXTO CLIMÁTICO (PUERTO PLATA)</span> <span>🇩🇴 MAPAS</span></div>
+            <div class="maps-grid">
+                <div class="map-box">
+                    <div class="map-label">VIENTO & NUBES (WINDY)</div>
+                    <iframe src="https://embed.windy.com/embed2.html?lat=19.780&lon=-70.687&zoom=8&level=surface&overlay=wind&menu=&message=&marker=&calendar=&pressure=&type=map&location=coordinates&detail=&detailLat=19.780&detailLon=-70.687&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"></iframe>
                 </div>
-                <div class="ts">Última act: <span id="ts">--:--:--</span></div>
-            </div>
-
-            <div class="card">
-                <div class="title">RADAR DOMINICANO (SNA)</div>
-                <iframe src="https://radar-met2.sna.gob.do/"></iframe>
+                <div class="map-box">
+                    <div class="map-label">PRECIPITACIÓN (SNA RADAR)</div>
+                    <iframe src="https://radar-met2.sna.gob.do/"></iframe>
+                </div>
             </div>
         </div>
+
     </div>
 
     <script>
-        // 🔥🔥 PEGA AQUÍ TU URL DE FIREBASE 🔥🔥
+        // 🔥🔥🔥 PEGA TU URL DE FIREBASE AQUÍ ABAJO 🔥🔥🔥
         var firebaseConfig = {
             databaseURL: "https://zentinel-ia-default-rtdb.firebaseio.com/"
         };
@@ -141,27 +164,23 @@
         var db = firebase.database();
         var ref = db.ref('zentinel');
 
-        // Función para actualizar colores de los relojes
         function updateGauge(type, val) {
             let el = document.getElementById('g-' + type);
             let valNum = parseFloat(val);
-            
-            // Eliminar clases previas
             el.classList.remove('safe', 'warn', 'danger');
 
-            // Lógica de colores (Umbrales)
-            if (type === 't') { // Temp
+            if (type === 't') { 
                 if (valNum > 30) el.classList.add('danger');
                 else if (valNum > 28) el.classList.add('warn');
                 else el.classList.add('safe');
-            } else if (type === 'h') { // Humedad
+            } else if (type === 'h') {
                 if (valNum > 75) el.classList.add('danger');
                 else if (valNum > 70) el.classList.add('warn');
                 else el.classList.add('safe');
-            } else if (type === 'n') { // NH3
+            } else if (type === 'n') {
                 if (valNum > 20) el.classList.add('danger');
                 else el.classList.add('safe');
-            } else if (type === 'r') { // Lluvia
+            } else if (type === 'r') {
                 if (val === 'SI') {
                     el.classList.add('danger');
                     document.getElementById('i-r').innerText = '⛈️';
@@ -172,16 +191,15 @@
             }
         }
 
-        // Escuchar datos en tiempo real
         ref.on('value', (snapshot) => {
             const data = snapshot.val();
             if(!data) return;
 
-            // Indicador de conexión
-            document.getElementById('status-dot').style.background = '#22c55e'; // Verde
-            document.getElementById('conn-text').innerText = 'En vivo';
+            // Status Online
+            document.getElementById('status-dot').classList.add('online-dot');
+            document.getElementById('conn-text').innerText = 'EN LÍNEA';
 
-            // Actualizar Valores Texto
+            // Textos
             document.getElementById('v-t').innerText = data.t;
             document.getElementById('v-h').innerText = data.h;
             document.getElementById('v-n').innerText = data.n;
@@ -189,25 +207,25 @@
             document.getElementById('mot').innerText = data.mot;
             document.getElementById('ts').innerText = data.ts;
 
-            // Actualizar Colores Relojes
+            // Relojes
             updateGauge('t', data.t);
             updateGauge('h', data.h);
             updateGauge('n', data.n);
             updateGauge('r', data.r);
 
-            // Actualizar Imagen
+            // Imagen
             if(data.img && data.img.length > 50) {
                 document.getElementById('snap').src = "data:image/jpeg;base64," + data.img;
             }
 
-            // Actualizar Banner IA (Limpiando HTML simple)
-            let cleanBanner = data.banner.replace(/<[^>]*>?/gm, ''); // Quitar tags viejos
+            // Banner IA
+            let cleanBanner = data.banner.replace(/<[^>]*>?/gm, '');
             let bannerEl = document.getElementById('banner');
             bannerEl.innerText = cleanBanner;
             
-            if (cleanBanner.includes("ALERTA")) bannerEl.style.background = "rgba(239, 68, 68, 0.9)"; // Rojo
-            else if (cleanBanner.includes("REVISAR")) bannerEl.style.background = "rgba(234, 179, 8, 0.9)"; // Amarillo
-            else bannerEl.style.background = "rgba(6, 78, 59, 0.9)"; // Verde
+            if (cleanBanner.includes("ALERTA")) bannerEl.style.background = "rgba(239, 68, 68, 0.9)";
+            else if (cleanBanner.includes("REVISAR")) bannerEl.style.background = "rgba(234, 179, 8, 0.9)";
+            else bannerEl.style.background = "rgba(6, 78, 59, 0.9)";
         });
     </script>
 </body>
