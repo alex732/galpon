@@ -1,232 +1,281 @@
-<!DOCTYPE html>
-<html lang='es'>
-<head>
-    <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Zentinel Cloud 🇩🇴</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+#!/bin/bash
+echo "📡 INSTALANDO ZENTINEL v164 (FULL DATA UPLINK)..."
+
+# 1. Limpieza
+sudo fuser -k 9090/tcp 5000/udp 2>/dev/null
+rm -f *.class
+
+# 2. Código Fuente
+cat <<'JAVA_CODE' > ZentinelCore.java
+import java.net.*;
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
+import com.sun.net.httpserver.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.nio.file.*;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.*;
+import java.util.Base64;
+
+public class ZentinelCore {
+    // --- CONFIGURACIÓN ---
+    private static final String IP_CAM = "192.168.2.97";
+    private static final int PORT_CAM = 88;
+    private static final String USER = "alex";
+    private static final String PASS = "F7324088";
+    private static final String IP_DELL = "192.168.2.80";
+    private static final String URL_IA_REMOTA = "http://" + IP_DELL + ":11434/api/generate";
+    private static final String MODELO_IA = "moondream"; 
+    private static final String LOCATION = "Puerto Plata, República Dominicana";
     
-    <style>
-        /* --- ESTILO CYBERPUNK INDUSTRIAL --- */
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --border: #334155;
-            --text: #f8fafc;
-            --sub: #94a3b8;
-            --green: #22c55e;
-            --red: #ef4444;
-            --yellow: #eab308;
-            --blue: #38bdf8;
-        }
+    // 🔥 TU FIREBASE (Mantenido de la versión anterior)
+    private static final String FIREBASE_URL = "https://zentinel-ia-default-rtdb.firebaseio.com/"; 
 
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 10px; }
+    // VARIABLES
+    private static final int MAX_FILAS_Y = 4; 
+    private static final int MAX_COLS_X  = 6;
+    private static final int TIEMPO_REPOSO_MINUTOS = 1; 
+    private static final String DB_FILE = "historial_zentinel.csv";
+
+    // --- DATOS ---
+    private static final List<String[]> sensorHistory = new CopyOnWriteArrayList<>();
+    private static volatile String iaBannerHTML = "<div class='banner-neutral'>☁️ CONECTANDO...</div>";
+    private static final List<String> iaHistoryLog = new CopyOnWriteArrayList<>(); // Bitácora IA
+    private static final List<String> verboseHistory = new CopyOnWriteArrayList<>();
+    private static final Map<String, String> matrixGallery = new ConcurrentHashMap<>();
+    private static final Map<String, Integer> mortalityTracker = new ConcurrentHashMap<>();
+    
+    // --- ESTADO ---
+    private static volatile String lastT="0.0", lastH="0.0", lastN="0.0", lastR="NO"; 
+    private static volatile byte[] liveFrame = new byte[0];
+    private static volatile byte[] snapshotFrame = new byte[0]; 
+    private static final Object frameLock = new Object();
+    
+    // TIMERS
+    private static volatile long lastArduinoContact = 0;
+    private static volatile boolean iaServerOnline = false; 
+    private static volatile String motorStatus = "STOP"; 
+    private static volatile boolean pausaIA = false;
+    private static volatile boolean iaOcupada = false;
+    private static volatile boolean solicitudRechequeo = false; 
+    private static boolean escaneoInicialCompletado = false; 
+    
+    private static final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final Object COMMAND_SEMAPHORE = new Object();
+    private static String piTemp="--", piRam="--", piDisk="--", piLoad="--", piIP="--", piWifi="--";
+
+    public static void main(String[] args) {
+        System.out.println("==========================================");
+        System.out.println("   🏭 ZENTINEL v164 (HISTORY UPLINK)");
+        System.out.println("==========================================");
+        recuperarDatos(); 
+        logV("SYS", "BOOT", "Sistema v164 Iniciado.");
         
-        /* HEADER */
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 15px; }
-        .brand { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
-        .live-dot { height: 10px; width: 10px; background-color: var(--sub); border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 5px; }
-        .online-dot { background-color: var(--green) !important; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        new Thread(() -> { 
+            try(DatagramSocket s = new DatagramSocket(5000)){ 
+                byte[] b=new byte[1024]; 
+                while(true){ DatagramPacket p=new DatagramPacket(b,b.length); s.receive(p); procesarData(new String(p.getData(),0,p.getLength(),"UTF-8").trim()); lastArduinoContact = System.currentTimeMillis(); } 
+            }catch(Exception e){ logV("UDP","ERR",e.getMessage()); } 
+        }).start();
 
-        /* GRID PRINCIPAL */
-        .main-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-        @media(min-width: 900px) { 
-            .main-grid { grid-template-columns: 1fr 1fr; } /* 2 Columnas en PC */
-        }
-
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column; }
-        .title { color: var(--sub); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; display: flex; justify-content: space-between; }
-
-        /* --- SENSORES TIPO RELOJ --- */
-        .sensors-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; justify-items: center; margin-bottom: 10px; }
+        new Thread(() -> { 
+            while(true) { 
+                actualizarStatsSistema(); 
+                verificarConexionIA(); 
+                try{Thread.sleep(5000);}catch(Exception e){} 
+            } 
+        }).start();
         
-        .gauge {
-            width: 90px; height: 90px;
-            border-radius: 50%;
-            background: var(--bg);
-            border: 5px solid var(--border);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: border-color 0.5s ease;
-            position: relative;
-        }
-        .gauge.safe { border-color: var(--green); }
-        .gauge.warn { border-color: var(--yellow); }
-        .gauge.danger { border-color: var(--red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
-
-        .gauge-val { font-size: 20px; font-weight: bold; }
-        .gauge-lbl { font-size: 9px; color: var(--sub); }
-        .gauge-icon { font-size: 12px; margin-bottom: 2px; }
-
-        /* --- CÁMARA --- */
-        .img-box { width: 100%; height: 250px; background: #000; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--border); }
-        .img-box img { width: 100%; height: 100%; object-fit: cover; }
-        .ia-banner { 
-            position: absolute; bottom: 0; left: 0; right: 0; 
-            background: rgba(0,0,0,0.8); color: white; 
-            padding: 8px; font-size: 11px; text-align: center; border-top: 1px solid var(--border);
-        }
-
-        /* --- MAPAS BOXES (DUAL) --- */
-        .maps-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        @media(min-width: 600px) { .maps-grid { grid-template-columns: 1fr 1fr; } } /* Lado a lado en tablets/PC */
-
-        .map-box { 
-            background: #000; border: 1px solid var(--border); border-radius: 8px; 
-            height: 250px; overflow: hidden; position: relative; 
-        }
-        .map-label { 
-            position: absolute; top: 0; left: 0; background: rgba(0,0,0,0.7); 
-            color: var(--blue); font-size: 9px; padding: 4px 8px; font-weight: bold; 
-            border-bottom-right-radius: 8px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
-            z-index: 10;
-        }
-        iframe { width: 100%; height: 100%; border: none; }
-
-        /* LOGS & FOOTER */
-        .status-bar { display: flex; justify-content: space-between; font-size: 10px; color: var(--sub); margin-top: 5px; }
-    </style>
-</head>
-<body>
-
-    <div class="header">
-        <div class="brand">ZENTINEL <span style="color:var(--blue)">CLOUD</span></div>
-        <div style="font-size:11px; color:var(--sub); display:flex; align-items:center;">
-            <div id="status-dot" class="live-dot"></div> 
-            <span id="conn-text">Conectando...</span>
-        </div>
-    </div>
-
-    <div class="main-grid">
-        
-        <div class="card">
-            <div class="title"><span>METRÍA INTERNA</span> <span>⏱️ EN VIVO</span></div>
-            <div class="sensors-row">
-                <div id="g-t" class="gauge">
-                    <div class="gauge-icon">🌡️</div>
-                    <div id="v-t" class="gauge-val">--</div>
-                    <div class="gauge-lbl">TEMP °C</div>
-                </div>
-                <div id="g-h" class="gauge">
-                    <div class="gauge-icon">💧</div>
-                    <div id="v-h" class="gauge-val">--</div>
-                    <div class="gauge-lbl">HUM %</div>
-                </div>
-                <div id="g-n" class="gauge">
-                    <div class="gauge-icon">🤢</div>
-                    <div id="v-n" class="gauge-val">--</div>
-                    <div class="gauge-lbl">NH3 ppm</div>
-                </div>
-                <div id="g-r" class="gauge">
-                    <div id="i-r" class="gauge-icon">☁️</div>
-                    <div id="v-r" class="gauge-val" style="font-size:16px">--</div>
-                    <div class="gauge-lbl">LLUVIA</div>
-                </div>
-            </div>
-            <div class="status-bar">
-                <span>MOTOR: <b id="mot" style="color:var(--yellow)">--</b></span>
-                <span id="ts">--:--:--</span>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="title"><span>VISIÓN ARTIFICIAL</span> <span>📷 SNAPSHOT</span></div>
-            <div class="img-box">
-                <img id="snap" src="" alt="Esperando imagen...">
-                <div id="banner" class="ia-banner">Esperando análisis IA...</div>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: 1 / -1;">
-            <div class="title"><span>CONTEXTO CLIMÁTICO (PUERTO PLATA)</span> <span>🇩🇴 MAPAS</span></div>
-            <div class="maps-grid">
-                <div class="map-box">
-                    <div class="map-label">VIENTO & NUBES (WINDY)</div>
-                    <iframe src="https://embed.windy.com/embed2.html?lat=19.780&lon=-70.687&zoom=8&level=surface&overlay=wind&menu=&message=&marker=&calendar=&pressure=&type=map&location=coordinates&detail=&detailLat=19.780&detailLon=-70.687&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"></iframe>
-                </div>
-                <div class="map-box">
-                    <div class="map-label">PRECIPITACIÓN (SNA RADAR)</div>
-                    <iframe src="https://radar-met2.sna.gob.do/"></iframe>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <script>
-        // 🔥🔥🔥 PEGA TU URL DE FIREBASE AQUÍ ABAJO 🔥🔥🔥
-        var firebaseConfig = {
-            databaseURL: "https://zentinel-ia-default-rtdb.firebaseio.com/"
-        };
-        
-        firebase.initializeApp(firebaseConfig);
-        var db = firebase.database();
-        var ref = db.ref('zentinel');
-
-        function updateGauge(type, val) {
-            let el = document.getElementById('g-' + type);
-            let valNum = parseFloat(val);
-            el.classList.remove('safe', 'warn', 'danger');
-
-            if (type === 't') { 
-                if (valNum > 30) el.classList.add('danger');
-                else if (valNum > 28) el.classList.add('warn');
-                else el.classList.add('safe');
-            } else if (type === 'h') {
-                if (valNum > 75) el.classList.add('danger');
-                else if (valNum > 70) el.classList.add('warn');
-                else el.classList.add('safe');
-            } else if (type === 'n') {
-                if (valNum > 20) el.classList.add('danger');
-                else el.classList.add('safe');
-            } else if (type === 'r') {
-                if (val === 'SI') {
-                    el.classList.add('danger');
-                    document.getElementById('i-r').innerText = '⛈️';
-                } else {
-                    el.classList.add('safe');
-                    document.getElementById('i-r').innerText = '☀️';
-                }
+        // HILO FIREBASE
+        new Thread(() -> {
+            while(true) {
+                subirAFirebase();
+                try { Thread.sleep(3000); } catch(Exception e){}
             }
-        }
+        }).start();
+        
+        ejecutarMotorMatricial(); 
+        videoEngine(); 
+        iniciarServidor(9090);
+    }
 
-        ref.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if(!data) return;
-
-            // Status Online
-            document.getElementById('status-dot').classList.add('online-dot');
-            document.getElementById('conn-text').innerText = 'EN LÍNEA';
-
-            // Textos
-            document.getElementById('v-t').innerText = data.t;
-            document.getElementById('v-h').innerText = data.h;
-            document.getElementById('v-n').innerText = data.n;
-            document.getElementById('v-r').innerText = data.r;
-            document.getElementById('mot').innerText = data.mot;
-            document.getElementById('ts').innerText = data.ts;
-
-            // Relojes
-            updateGauge('t', data.t);
-            updateGauge('h', data.h);
-            updateGauge('n', data.n);
-            updateGauge('r', data.r);
-
-            // Imagen
-            if(data.img && data.img.length > 50) {
-                document.getElementById('snap').src = "data:image/jpeg;base64," + data.img;
+    // --- FIREBASE UPLINK MEJORADO ---
+    private static void subirAFirebase() {
+        try {
+            String imgBase64 = "";
+            synchronized(frameLock) { 
+                if(snapshotFrame.length > 0) imgBase64 = Base64.getEncoder().encodeToString(snapshotFrame); 
             }
-
-            // Banner IA
-            let cleanBanner = data.banner.replace(/<[^>]*>?/gm, '');
-            let bannerEl = document.getElementById('banner');
-            bannerEl.innerText = cleanBanner;
             
-            if (cleanBanner.includes("ALERTA")) bannerEl.style.background = "rgba(239, 68, 68, 0.9)";
-            else if (cleanBanner.includes("REVISAR")) bannerEl.style.background = "rgba(234, 179, 8, 0.9)";
-            else bannerEl.style.background = "rgba(6, 78, 59, 0.9)";
-        });
-    </script>
-</body>
-</html>
+            // Construir JSON de HISTORIAL
+            StringBuilder histJson = new StringBuilder("[");
+            int maxH = Math.min(sensorHistory.size(), 20); // Solo los últimos 20 para no saturar
+            for(int i=0; i<maxH; i++){
+                String[] d = sensorHistory.get(i);
+                histJson.append(String.format("{\"tm\":\"%s\",\"t\":\"%s\",\"h\":\"%s\",\"n\":\"%s\",\"r\":\"%s\"}", d[0], d[1], d[2], d[3], d[4]));
+                if(i < maxH-1) histJson.append(",");
+            }
+            histJson.append("]");
+
+            // Construir JSON de RECOMENDACIONES IA
+            StringBuilder recsJson = new StringBuilder("[");
+            int maxR = Math.min(iaHistoryLog.size(), 10);
+            for(int i=0; i<maxR; i++){
+                String raw = iaHistoryLog.get(i).replaceAll("<[^>]*>", ""); // Limpiar HTML
+                recsJson.append("\"").append(raw.replace("\"", "'")).append("\"");
+                if(i < maxR-1) recsJson.append(",");
+            }
+            recsJson.append("]");
+            
+            StringBuilder json = new StringBuilder();
+            json.append("{");
+            json.append("\"t\":\"").append(lastT).append("\",");
+            json.append("\"h\":\"").append(lastH).append("\",");
+            json.append("\"n\":\"").append(lastN).append("\",");
+            json.append("\"r\":\"").append(lastR).append("\",");
+            json.append("\"mot\":\"").append(motorStatus).append("\",");
+            json.append("\"img\":\"").append(imgBase64).append("\",");
+            json.append("\"banner\":\"").append(iaBannerHTML.replaceAll("<[^>]*>", "").replace("\"", "'")).append("\",");
+            json.append("\"hist\":").append(histJson).append(","); // 🔥 Nuevo
+            json.append("\"recs\":").append(recsJson).append(","); // 🔥 Nuevo
+            json.append("\"ts\":\"").append(LocalDateTime.now().format(dtf)).append("\"");
+            json.append("}");
+
+            URL url = new URL(FIREBASE_URL + "zentinel.json");
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+            con.setRequestMethod("PUT");
+            con.setDoOutput(true);
+            con.setConnectTimeout(2000);
+            
+            try(OutputStream os = con.getOutputStream()) { os.write(json.toString().getBytes("UTF-8")); }
+            con.getInputStream().close();
+            
+        } catch (Exception e) { }
+    }
+
+    // --- RESTO DEL SISTEMA (IGUAL QUE ANTES) ---
+    private static void verificarConexionIA() { try { URL u = new URL("http://" + IP_DELL + ":11434"); HttpURLConnection c = (HttpURLConnection) u.openConnection(); c.setConnectTimeout(2000); c.connect(); iaServerOnline = true; } catch (Exception e) { iaServerOnline = false; } }
+
+    private static void ejecutarMotorMatricial() {
+        new Thread(() -> {
+            while(true) {
+                if (pausaIA) { motorStatus="PAUSA"; try{Thread.sleep(1000);}catch(Exception e){}; continue; }
+                if (!iaServerOnline) { motorStatus="ESPERANDO IA"; try{Thread.sleep(5000);}catch(Exception e){}; continue; }
+
+                int filaInicio = escaneoInicialCompletado ? 2 : 0;
+                motorStatus = "ESCANEANDO";
+                logV("MOTOR", "CYCLE", "Iniciando ronda...");
+                
+                try {
+                    enviarPtz("ptzMoveUp", 3500); enviarPtz("ptzMoveLeft", 9000);
+                    if (filaInicio > 0) { enviarPtz("ptzMoveDown", 2200 * filaInicio); Thread.sleep(1000); }
+                    for (int y = filaInicio; y < MAX_FILAS_Y; y++) {
+                        if(pausaIA || !iaServerOnline) break; 
+                        for (int x = 0; x < MAX_COLS_X; x++) {
+                            if(pausaIA || !iaServerOnline) break;
+                            Thread.sleep(2500); 
+                            synchronized(frameLock) { snapshotFrame = liveFrame.clone(); }
+                            procesarZona("F"+y+"_C"+x); 
+                            if (solicitudRechequeo) {
+                                logV("IA", "AUTO", "Re-Check...");
+                                Thread.sleep(3000); 
+                                synchronized(frameLock) { snapshotFrame = liveFrame.clone(); }
+                                procesarZona("F"+y+"_C"+x + "_RE"); 
+                                solicitudRechequeo = false; 
+                            }
+                            if (x < (MAX_COLS_X-1)) enviarPtz("ptzMoveRight", 3200);
+                        }
+                        if (y < (MAX_FILAS_Y-1)) { enviarPtz("ptzMoveDown", 2200); enviarPtz("ptzMoveLeft", 16000); Thread.sleep(1000); }
+                    }
+                    if (iaServerOnline && !pausaIA) { 
+                        escaneoInicialCompletado = true; 
+                        motorStatus = "DURMIENDO";
+                        logV("MOTOR", "SLEEP", "Centrando...");
+                        enviarPtz("ptzMoveUp", 3500); enviarPtz("ptzMoveLeft", 10000); Thread.sleep(500);
+                        enviarPtz("ptzMoveRight", 4500); enviarPtz("ptzMoveDown", 1500);  
+                        Thread.sleep(TIEMPO_REPOSO_MINUTOS * 60000); 
+                    }
+                } catch (Exception e) { logV("MOTOR", "ERR", e.getMessage()); }
+            }
+        }).start();
+    }
+
+    private static void procesarZona(String zonaID) {
+        byte[] frame; synchronized(frameLock) { frame = liveFrame.clone(); }
+        if (frame.length > 0) {
+            actualizarMatrizWeb(zonaID, "#3b82f6", zonaID, false);
+            if (!iaOcupada && iaServerOnline) {
+                new Thread(() -> {
+                    iaOcupada = true;
+                    String prompt = "Describe this image. Is there a DEAD CHICKEN, BLOOD or something RED? Answer YES, NO, or CHECK if blurry.";
+                    logV("IA", "VIS", "Analizando "+zonaID);
+                    String resp = llamarOllamaRaw(frame, prompt);
+                    if(resp.contains("[0.")) resp = "NO"; 
+                    
+                    String color="#4ade80"; String t=zonaID; 
+                    if (resp.contains("CHECK")) { solicitudRechequeo=true; color="#f59e0b"; iaBannerHTML="<div class='banner-warn'>⚠️ "+zonaID+": REVISANDO</div>"; }
+                    else if (resp.contains("YES")||resp.contains("RED")||resp.contains("DEAD")) { 
+                        color="#ef4444"; logV("IA", "ALERTA", resp); 
+                        iaBannerHTML="<div class='banner-danger'>🚨 ALERTA "+zonaID+"</div>";
+                        iaHistoryLog.add(0, "ALERTA "+zonaID+": " + resp); // Guardar para historial
+                        if(iaHistoryLog.size()>50) iaHistoryLog.remove(50);
+                    } else { iaBannerHTML="<div class='banner-safe'>✅ "+zonaID+" OK</div>"; }
+                    actualizarMatrizWeb(zonaID, color, t, true);
+                    iaOcupada = false;
+                }).start();
+            }
+        }
+    }
+
+    private static void actualizarMatrizWeb(String id, String color, String texto, boolean esUpdateIA) {
+        long ts = System.currentTimeMillis();
+        String realId = id.replace("_RE", "");
+        String html = String.format("<div class='cam-cell' style='border:2px solid %s'><img src='/live?t=%d'><div class='cam-tag' style='background:%s; color:black;'>%s</div></div>", color, ts, color, texto);
+        matrixGallery.put(realId, html);
+    }
+
+    private static void enviarPtz(String cmd, long ms) {
+        synchronized(COMMAND_SEMAPHORE) {
+            try {
+                URL url = new URL("http://" + IP_CAM + ":" + PORT_CAM + "/cgi-bin/CGIProxy.fcgi?cmd=" + cmd + "&usr=" + USER + "&pwd=" + PASS);
+                ((HttpURLConnection) url.openConnection()).getInputStream().close();
+                if (ms > 0) { Thread.sleep(ms); new URL("http://" + IP_CAM + ":" + PORT_CAM + "/cgi-bin/CGIProxy.fcgi?cmd=ptzStopRun&usr=" + USER + "&pwd=" + PASS).openStream().close(); }
+            } catch (Exception e) {}
+        }
+    }
+
+    private static void procesarData(String raw) {
+        try {
+            Matcher m = Pattern.compile("(\\d+(\\.\\d+)?)").matcher(raw);
+            List<String> n = new ArrayList<>(); while (m.find()) n.add(m.group());
+            if (n.size() >= 3) {
+                lastT=n.get(0); lastH=n.get(1); lastN=n.get(2); lastR=(n.size()>=4 && Double.parseDouble(n.get(3))>0)?"SI":"NO";
+                String[] entry = {LocalDateTime.now().format(dtf), lastT, lastH, lastN, lastR};
+                sensorHistory.add(0, entry); if(sensorHistory.size()>50) sensorHistory.remove(50);
+                try { Files.write(Paths.get(DB_FILE), (String.join(",",entry)+"\n").getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND); } catch(Exception e){}
+            }
+        } catch (Exception e) {}
+    }
+
+    private static void recuperarDatos() { try { if(Files.exists(Paths.get(DB_FILE))) { List<String> l=Files.readAllLines(Paths.get(DB_FILE)); for(int i=l.size()-1; i>=Math.max(0,l.size()-50); i--) sensorHistory.add(l.get(i).split(",")); } } catch(Exception e){} }
+    private static void logV(String s, String t, String m) { String c="#94a3b8"; if(t.equals("ALERTA"))c="#ef4444"; if(s.equals("IA"))c="#d8b4fe"; verboseHistory.add(0, String.format("<div class='v-row'><span style='color:#475569'>%s</span> <b style='color:%s'>%s</b>: %s</div>", LocalDateTime.now().format(dtf), c, t, m)); if(verboseHistory.size()>30) verboseHistory.remove(30); }
+    private static void actualizarStatsSistema() { try { piTemp = String.format("%.1f°C", Double.parseDouble(execCmd("cat /sys/class/thermal/thermal_zone0/temp"))/1000.0); piRam = execCmd("free -m | awk '/Mem:/ { print $3\"/\"$2\"MB\" }'"); piDisk = execCmd("df -h / | awk 'NR==2 {print $5}'"); piLoad = execCmd("cat /proc/loadavg | awk '{print $1}'"); piIP = execCmd("hostname -I | awk '{print $1}'"); String wr = execCmd("grep wlan0 /proc/net/wireless | awk '{print $3}'").replace(".", ""); piWifi = wr.isEmpty() ? "LAN" : wr + "%"; } catch (Exception e) {} }
+    private static String execCmd(String cmd) { try { Process p = Runtime.getRuntime().exec(new String[]{"/bin/sh", "-c", cmd}); BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream())); String l=r.readLine(); return l!=null?l:""; } catch (Exception e) { return ""; } }
+    private static void videoEngine() { new Thread(() -> { while (true) { try { URL u = new URL("http://"+IP_CAM+":"+PORT_CAM+"/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr="+USER+"&pwd="+PASS); HttpURLConnection c = (HttpURLConnection) u.openConnection(); c.setConnectTimeout(1000); try (InputStream in = c.getInputStream(); ByteArrayOutputStream out = new ByteArrayOutputStream()) { byte[] b = new byte[8192]; int n; while((n = in.read(b)) != -1) out.write(b, 0, n); synchronized(frameLock) { liveFrame = out.toByteArray(); }}} catch (Exception e) {} try { Thread.sleep(250); } catch (Exception e) {} } }).start(); }
+    private static String llamarOllamaRaw(byte[] imageBytes, String prompt) { try { String base64Img = Base64.getEncoder().encodeToString(imageBytes); String json = "{\"model\": \"" + MODELO_IA + "\", \"prompt\": \"" + prompt + "\", \"images\": [\"" + base64Img + "\"], \"stream\": false}"; URL url = new URL(URL_IA_REMOTA); HttpURLConnection con = (HttpURLConnection) url.openConnection(); con.setRequestMethod("POST"); con.setDoOutput(true); con.setConnectTimeout(3000); con.setReadTimeout(120000); try(OutputStream os = con.getOutputStream()) { os.write(json.getBytes("utf-8")); } try(BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), "utf-8"))) { StringBuilder sb = new StringBuilder(); String line; while ((line = br.readLine()) != null) sb.append(line.trim()); String full = sb.toString(); int start = full.indexOf("\"response\":\""); if (start != -1) { start += 12; int end = full.indexOf("\",\"", start); if(end == -1) end = full.indexOf("\"}", start); if(end != -1) return full.substring(start, end).toUpperCase(); } return "ERR PARSE"; } } catch (Exception e) { return "ERROR"; } }
+    private static String llamarOllamaChat(byte[] b, String p) { return "Chat solo local"; } 
+
+    public static void iniciarServidor(int port) {
+        try { HttpServer s = HttpServer.create(new InetSocketAddress(port), 0);
+            s.createContext("/", ex -> { byte[] b = html().getBytes("UTF-8"); ex.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8"); ex.sendResponseHeaders(200, b.length); try (OutputStream os = ex.getResponseBody()) { os.write(b); }});
+            s.createContext("/live", ex -> { synchronized(frameLock) { if(liveFrame.length > 0) { ex.getResponseHeaders().set("Content-Type", "image/jpeg"); ex.sendResponseHeaders(200, liveFrame.length); try (OutputStream os = ex.getResponseBody()) { os.write(liveFrame); }} else { ex.sendResponseHeaders(404, 0); }} ex.close(); });
+            s.start(); } catch (Exception e) {}
+    }
+    private static String html() { return "<html><body><h1>ZENTINEL LOCAL DASHBOARD</h1><p>Sistema operando y subiendo a la nube.</p></body></html>"; }
+}
+JAVA_CODE
+
+javac -encoding UTF-8 ZentinelCore.java
+java -Xms256m -Xmx512m ZentinelCore
