@@ -8,106 +8,206 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
     <style>
-        body { background: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; font-size: 13px; display: grid; gap: 10px; grid-template-columns: 1fr; }
-        @media(min-width: 600px) { body { grid-template-columns: 1fr 1fr; } }
+        /* --- ESTILO CYBERPUNK CLEAN --- */
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --sub: #94a3b8;
+            --green: #22c55e;
+            --red: #ef4444;
+            --yellow: #eab308;
+            --blue: #3b82f6;
+        }
+
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 10px; }
         
-        .header { grid-column: 1 / -1; border-bottom: 2px solid #334155; padding-bottom: 5px; margin-bottom: 5px; font-size: 18px; font-weight: bold; display: flex; justify-content: space-between; }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; }
-        .title { color: #94a3b8; font-weight: bold; font-size: 11px; margin-bottom: 5px; text-transform: uppercase; border-bottom: 1px solid #334155; }
+        /* HEADER */
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 2px solid var(--border); margin-bottom: 15px; }
+        .brand { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+        .live-dot { height: 10px; width: 10px; background-color: var(--green); border-radius: 50%; display: inline-block; animation: blink 1s infinite; margin-right: 5px; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        /* GRID PRINCIPAL */
+        .grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        @media(min-width: 768px) { .grid { grid-template-columns: 300px 1fr; } }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .title { color: var(--sub); font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+
+        /* --- SENSORES TIPO RELOJ (GAUGES) --- */
+        .sensors-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; justify-items: center; }
         
-        .grid-sensors { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-        .sensor-box { background: #0f172a; padding: 10px; border-radius: 4px; text-align: center; border: 1px solid #334155; }
-        .val { font-size: 20px; font-weight: bold; color: #38bdf8; }
-        .lbl { font-size: 10px; color: #94a3b8; }
-        
-        .img-box { width: 100%; height: 250px; background: #000; border-radius: 4px; border: 1px solid #334155; overflow: hidden; position: relative; }
+        .gauge {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 6px solid var(--border); /* Color base */
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+            position: relative;
+        }
+
+        .gauge.safe { border-color: var(--green); box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+        .gauge.warn { border-color: var(--yellow); box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
+        .gauge.danger { border-color: var(--red); box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+
+        .gauge-val { font-size: 24px; font-weight: bold; }
+        .gauge-lbl { font-size: 10px; color: var(--sub); margin-top: -2px; }
+        .gauge-icon { font-size: 14px; margin-bottom: 2px; }
+
+        /* --- IMAGEN & MAPAS --- */
+        .img-box { width: 100%; height: 300px; background: #000; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--border); }
         .img-box img { width: 100%; height: 100%; object-fit: cover; }
-        .overlay { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.7); color: white; padding: 5px; text-align: center; font-size: 11px; }
         
-        .status-row { display: flex; justify-content: space-between; font-size: 11px; margin-top: 5px; }
-        .badge { padding: 2px 6px; border-radius: 3px; background: #334155; }
-        .online { color: #4ade80; } .offline { color: #ef4444; }
-        
-        iframe { border: none; width: 100%; height: 200px; border-radius: 4px; }
+        .ia-banner { 
+            position: absolute; bottom: 0; left: 0; right: 0; 
+            background: rgba(0,0,0,0.8); color: white; 
+            padding: 8px; font-size: 12px; text-align: center; 
+            border-top: 1px solid var(--border);
+        }
+
+        iframe { width: 100%; height: 250px; border: none; border-radius: 8px; }
+
+        /* LOGS */
+        .log-box { font-family: monospace; font-size: 11px; color: var(--sub); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ts { font-size: 10px; color: var(--sub); text-align: right; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div>ZENTINEL <span style="color:#38bdf8">CLOUD</span></div>
-        <div id="ts" style="font-size:12px; color:#94a3b8; font-family:monospace;">--:--:--</div>
-    </div>
-
-    <div class="card">
-        <div class="title">SENSORES (TIEMPO REAL)</div>
-        <div class="grid-sensors">
-            <div class="sensor-box"><div id="t" class="val">--</div><div class="lbl">TEMP °C</div></div>
-            <div class="sensor-box"><div id="h" class="val">--</div><div class="lbl">HUM %</div></div>
-            <div class="sensor-box"><div id="n" class="val">--</div><div class="lbl">NH3 ppm</div></div>
-            <div class="sensor-box"><div id="r" class="val">--</div><div class="lbl">LLUVIA</div></div>
-        </div>
-        <div class="status-row">
-            <span>MOTOR: <b id="mot" style="color:#eab308">--</b></span>
-            <span>IA: <b id="ia" class="offline">--</b></span>
+        <div class="brand"><span style="color:var(--blue)">ZENTINEL</span> CLOUD</div>
+        <div style="font-size:12px; color:var(--sub); display:flex; align-items:center;">
+            <div id="status-dot" class="live-dot" style="background:gray"></div> 
+            <span id="conn-text">Conectando...</span>
         </div>
     </div>
 
-    <div class="card">
-        <div class="title">ÚLTIMO ESCANEO VISUAL</div>
-        <div class="img-box">
-            <img id="snap" src="" alt="Esperando datos...">
-            <div id="banner" class="overlay">Conectando...</div>
+    <div class="grid">
+        <div class="card">
+            <div class="title">SENSORES EN VIVO</div>
+            <div class="sensors-container">
+                <div id="g-t" class="gauge">
+                    <div class="gauge-icon">🌡️</div>
+                    <div id="v-t" class="gauge-val">--</div>
+                    <div class="gauge-lbl">TEMP °C</div>
+                </div>
+                <div id="g-h" class="gauge">
+                    <div class="gauge-icon">💧</div>
+                    <div id="v-h" class="gauge-val">--</div>
+                    <div class="gauge-lbl">HUM %</div>
+                </div>
+                <div id="g-n" class="gauge">
+                    <div class="gauge-icon">🤢</div>
+                    <div id="v-n" class="gauge-val">--</div>
+                    <div class="gauge-lbl">NH3 ppm</div>
+                </div>
+                <div id="g-r" class="gauge">
+                    <div id="i-r" class="gauge-icon">☁️</div>
+                    <div id="v-r" class="gauge-val" style="font-size:18px">--</div>
+                    <div class="gauge-lbl">LLUVIA</div>
+                </div>
+            </div>
+            <div class="log-box" style="margin-top:15px; text-align:center;">
+                MOTOR: <span id="mot" style="color:var(--yellow); font-weight:bold;">--</span>
+            </div>
         </div>
-        <div id="log" style="font-size:10px; color:#64748b; margin-top:5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
-    </div>
 
-    <div class="card" style="grid-column: 1 / -1;">
-        <div class="title">RADAR DOMINICANO (SNA)</div>
-        <iframe src="https://radar-met2.sna.gob.do/"></iframe>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <div class="card" style="padding:5px;">
+                <div class="img-box">
+                    <img id="snap" src="" alt="Esperando imagen...">
+                    <div id="banner" class="ia-banner">Esperando datos de la IA...</div>
+                </div>
+                <div class="ts">Última act: <span id="ts">--:--:--</span></div>
+            </div>
+
+            <div class="card">
+                <div class="title">RADAR DOMINICANO (SNA)</div>
+                <iframe src="https://radar-met2.sna.gob.do/"></iframe>
+            </div>
+        </div>
     </div>
 
     <script>
-        // 1. CONFIGURACIÓN FIREBASE
+        // 🔥🔥 PEGA AQUÍ TU URL DE FIREBASE 🔥🔥
         var firebaseConfig = {
             databaseURL: "https://zentinel-ia-default-rtdb.firebaseio.com/"
         };
+        
         firebase.initializeApp(firebaseConfig);
-
-        // 2. CONEXIÓN BASE DE DATOS
         var db = firebase.database();
-        var ref = db.ref('zentinel'); // Nodo raíz donde escribe Java
+        var ref = db.ref('zentinel');
 
-        // 3. ESCUCHAR CAMBIOS
+        // Función para actualizar colores de los relojes
+        function updateGauge(type, val) {
+            let el = document.getElementById('g-' + type);
+            let valNum = parseFloat(val);
+            
+            // Eliminar clases previas
+            el.classList.remove('safe', 'warn', 'danger');
+
+            // Lógica de colores (Umbrales)
+            if (type === 't') { // Temp
+                if (valNum > 30) el.classList.add('danger');
+                else if (valNum > 28) el.classList.add('warn');
+                else el.classList.add('safe');
+            } else if (type === 'h') { // Humedad
+                if (valNum > 75) el.classList.add('danger');
+                else if (valNum > 70) el.classList.add('warn');
+                else el.classList.add('safe');
+            } else if (type === 'n') { // NH3
+                if (valNum > 20) el.classList.add('danger');
+                else el.classList.add('safe');
+            } else if (type === 'r') { // Lluvia
+                if (val === 'SI') {
+                    el.classList.add('danger');
+                    document.getElementById('i-r').innerText = '⛈️';
+                } else {
+                    el.classList.add('safe');
+                    document.getElementById('i-r').innerText = '☀️';
+                }
+            }
+        }
+
+        // Escuchar datos en tiempo real
         ref.on('value', (snapshot) => {
             const data = snapshot.val();
             if(!data) return;
 
-            // Actualizar Sensores
-            document.getElementById('t').innerText = data.t;
-            document.getElementById('h').innerText = data.h;
-            document.getElementById('n').innerText = data.n;
-            
-            let isRain = data.r === "SI";
-            let rEl = document.getElementById('r');
-            rEl.innerText = isRain ? "SI" : "NO";
-            rEl.style.color = isRain ? "#ef4444" : "#4ade80";
+            // Indicador de conexión
+            document.getElementById('status-dot').style.background = '#22c55e'; // Verde
+            document.getElementById('conn-text').innerText = 'En vivo';
 
-            // Actualizar Imagen (Si hay nueva)
-            if(data.img && data.img.length > 100) {
+            // Actualizar Valores Texto
+            document.getElementById('v-t').innerText = data.t;
+            document.getElementById('v-h').innerText = data.h;
+            document.getElementById('v-n').innerText = data.n;
+            document.getElementById('v-r').innerText = data.r;
+            document.getElementById('mot').innerText = data.mot;
+            document.getElementById('ts').innerText = data.ts;
+
+            // Actualizar Colores Relojes
+            updateGauge('t', data.t);
+            updateGauge('h', data.h);
+            updateGauge('n', data.n);
+            updateGauge('r', data.r);
+
+            // Actualizar Imagen
+            if(data.img && data.img.length > 50) {
                 document.getElementById('snap').src = "data:image/jpeg;base64," + data.img;
             }
 
-            // Actualizar Textos
-            document.getElementById('banner').innerHTML = data.banner;
-            document.getElementById('banner').style.background = data.banner.includes('ALERTA') ? 'rgba(239, 68, 68, 0.9)' : 'rgba(0,0,0,0.7)';
+            // Actualizar Banner IA (Limpiando HTML simple)
+            let cleanBanner = data.banner.replace(/<[^>]*>?/gm, ''); // Quitar tags viejos
+            let bannerEl = document.getElementById('banner');
+            bannerEl.innerText = cleanBanner;
             
-            document.getElementById('mot').innerText = data.mot;
-            document.getElementById('log').innerText = "> " + data.log;
-            document.getElementById('ts').innerText = data.ts;
-            
-            // Status Simulado (Si hay datos recientes, asumimos IA on)
-            document.getElementById('ia').className = 'online';
-            document.getElementById('ia').innerText = 'ONLINE';
+            if (cleanBanner.includes("ALERTA")) bannerEl.style.background = "rgba(239, 68, 68, 0.9)"; // Rojo
+            else if (cleanBanner.includes("REVISAR")) bannerEl.style.background = "rgba(234, 179, 8, 0.9)"; // Amarillo
+            else bannerEl.style.background = "rgba(6, 78, 59, 0.9)"; // Verde
         });
     </script>
 </body>
