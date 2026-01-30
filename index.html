@@ -2,66 +2,62 @@
 <html lang='es'>
 <head>
     <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>Zentinel Cloud 🇩🇴</title>
+    <title>Zentinel Cloud v190</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #0f172a; color: #f8fafc; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; font-size: 13px; }
-        .header-bar { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #334155; }
-        .header-title { font-size: 20px; font-weight: bold; }
-        .layout-grid { display: grid; gap: 10px; grid-template-columns: 1fr; }
-        @media(min-width: 1000px) { .layout-grid { grid-template-columns: 180px 1fr 300px; } }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px; margin-bottom: 8px; display:flex; flex-direction:column; }
-        .card-title { font-size: 10px; color: #94a3b8; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; border-bottom: 1px solid #334155; }
-        .gauge-box { background: #0f172a; border-radius: 50%; width: 100px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 10px auto; border: 4px solid #334155; transition: border-color 0.5s; }
-        .g-green { border-color: #22c55e; } .g-red { border-color: #ef4444; }
-        .val-text { font-size: 22px; font-weight: bold; }
-        .video-main { width: 100%; height: 350px; background: #000; border-radius: 6px; object-fit: cover; border: 1px solid #334155; }
-        .pred-box { background: #0f172a; border-left: 4px solid #38bdf8; padding: 10px; margin-top: 10px; text-align: center; }
-        .ia-list { height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
-        .ia-item { background: #0f172a; padding: 6px; border-radius: 4px; border: 1px solid #334155; }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; } th { text-align: left; border-bottom: 1px solid #334155; } td { border-bottom: 1px solid #33415555; padding: 3px; }
-        iframe { width: 100%; border: none; border-radius: 4px; display: block; }
-        .pi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px; font-size:9px; }
-        .stat-box { background: #0f172a; padding: 4px; border-radius: 3px; text-align: center; border: 1px solid #334155; }
+        body { background: #0f172a; color: #f8fafc; font-family: sans-serif; margin: 0; padding: 10px; font-size: 13px; }
+        .layout { display: grid; grid-template-columns: 180px 1fr 300px; gap: 10px; }
+        @media(max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+        .gauge-box { background: #0f172a; border-radius: 50%; width: 90px; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 10px auto; border: 4px solid #334155; }
+        .g-red { border-color: #ef4444; } .g-green { border-color: #22c55e; }
+        .v-row { font-family: monospace; font-size: 10px; color: #94a3b8; border-bottom: 1px solid #334155; padding: 2px 0; }
+        .video { width: 100%; border-radius: 6px; border: 1px solid #334155; }
+        .ia-item { padding: 5px; border-bottom: 1px solid #334155; font-size: 11px; }
     </style>
 </head>
 <body>
-    <div class="header-bar"><div class="header-title">ZENTINEL <span style="color:#38bdf8">CLOUD</span></div><div id="clock">--:--</div></div>
-    <div class="layout-grid">
-        <div class="col-left"><div class="card">
-            <div id="bgT" class="gauge-box"><span id="vT" class="val-text">--</span>TEMP</div>
-            <div id="bgH" class="gauge-box"><span id="vH" class="val-text">--</span>HUM</div>
-            <div id="bgN" class="gauge-box"><span id="vN" class="val-text">--</span>NH3</div>
-            <div id="bgR" class="gauge-box"><span id="vR" style="font-size:30px">☀️</span>LLUVIA</div>
-            <div class="card-title" style="margin-top:15px; border-bottom:none;">CLIMA IA:</div>
-            <div id="wp" class="pred-box">...</div>
-            <div style="text-align:center; font-size:10px; margin-top:15px;">MOTOR: <b id="mot" style="color:#eab308">--</b></div>
-        </div></div>
-        <div class="col-center">
-            <div class="card" style="border-color:#38bdf8;"><div class="card-title" style="color:#38bdf8;">📢 ANÁLISIS IA</div><div id="current-rec" style="padding:5px; font-size:14px;">...</div></div>
-            <img id="live" class="video-main" src="" alt="Esperando...">
-            <div class="card" style="margin-top:8px; height:150px; overflow-y:auto;"><div class="card-title">HISTORIAL</div><table id="local-table"><thead><tr><th>HORA</th><th>T</th><th>H</th><th>N</th><th>LLUVIA</th></tr></thead><tbody></tbody></table></div>
+    <h2 style="margin:0 0 10px 0;">ZENTINEL <span style="color:#38bdf8">CLOUD v190</span></h2>
+    <div class="layout">
+        <div>
+            <div class="card">
+                <div id="bgT" class="gauge-box"><b id="vT">--</b>T</div>
+                <div id="bgH" class="gauge-box"><b id="vH">--</b>H</div>
+                <div id="bgN" class="gauge-box"><b id="vN">--</b>N</div>
+                <div id="bgR" class="gauge-box"><span id="vR" style="font-size:25px">☀️</span>LL</div>
+                <div id="wp" style="background:#0f172a; padding:5px; font-size:10px; border-left:3px solid #38bdf8;">...</div>
+            </div>
         </div>
-        <div class="col-right">
-            <div class="card"><div class="card-title">SISTEMA</div><div class="pi-grid"><div class="stat-box"><span id="piIP">--</span><br>IP</div><div class="stat-box" id="stArd">--<br>ARDUINO</div><div class="stat-box" id="stIA">--<br>IA</div></div></div>
-            <div class="card"><div class="card-title">HISTORIAL IA</div><div id="ia-history" class="ia-list"></div></div>
-            <div class="card"><div class="card-title">VIENTO</div><iframe height="150" src="https://embed.windy.com/embed2.html?lat=19.780&lon=-70.687&zoom=8&level=surface&overlay=wind"></iframe></div>
-            <div class="card"><div class="card-title">LLUVIA</div><iframe height="200" src="https://radar-met2.sna.gob.do/"></iframe></div>
+        <div>
+            <div id="banner"></div>
+            <img id="live" class="video" src="">
+            <div class="card" style="margin-top:10px; height:150px; overflow:auto;">
+                <b>HISTORIAL IA</b>
+                <div id="recs"></div>
+            </div>
+        </div>
+        <div>
+            <div class="card"><b>VERBOSE SISTEMA</b><div id="v-log" style="height:150px; overflow:auto;"></div></div>
+            <div class="card"><b>SISTEMA</b><div id="stats" style="font-size:10px;"></div></div>
+            <iframe width="100%" height="150" src="https://embed.windy.com/embed2.html?lat=19.7&lon=-70.7&zoom=7"></iframe>
         </div>
     </div>
     <script>
         var firebaseConfig = { databaseURL: "https://zentinel-ia-default-rtdb.firebaseio.com/" };
         firebase.initializeApp(firebaseConfig);
-        var ref = firebase.database().ref('zentinel');
-        let lastTimestamp = "";
-        function setG(id,v,min,max){let bg=document.getElementById('bg'+id);document.getElementById('v'+id).innerText=v;let val=parseFloat(v);bg.className='gauge-box '+(val>max?'g-red':'g-green');}
-        ref.on('value', (s) => {
-            const d = s.val(); if(!d)return;
-            setG('T',d.t,28,30); setG('H',d.h,65,75); setG('N',d.n,15,25);
-            let isR=d.r=='SI'; document.getElementById('vR').innerText=isR?'⛈️':'☀️'; document.getElementById('bgR').className='gauge-box '+(isR?'g-red':'g-green');
-            document.getElementById('mot').innerText=d.mot;
-            document.getElementById('wp').innerText=d.wp||"Sin datos";
-            if(d.img&&d.img.length>50) document.getElementById('live').src="data:image/jpeg;base64,"+d.img;
-            document.getElementById('current-rec').innerText=d.banner.replace(/<[^>
+        firebase.database().ref('zentinel').on('value', (s) => {
+            const d = s.val(); if(!d) return;
+            document.getElementById('vT').innerText = d.t; document.getElementById('bgT').className = 'gauge-box '+(parseFloat(d.t)>30?'g-red':'g-green');
+            document.getElementById('vH').innerText = d.h; document.getElementById('bgH').className = 'gauge-box '+(parseFloat(d.h)>75?'g-red':'g-green');
+            document.getElementById('vR').innerText = d.r=='SI'?'⛈️':'☀️';
+            document.getElementById('wp').innerText = d.wp;
+            document.getElementById('banner').innerHTML = d.banner;
+            document.getElementById('recs').innerHTML = d.recs;
+            document.getElementById('v-log').innerHTML = d.v;
+            document.getElementById('stats').innerHTML = "IP: "+d.piIP+"<br>STATUS: "+d.mot+"<br>TS: "+d.ts;
+            if(d.img) document.getElementById('live').src = "data:image/jpeg;base64," + d.img;
+        });
+    </script>
+</body>
+</html>
