@@ -5,53 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zentinel AI Cloud</title>
     <style>
-        body{background:#0f172a; color:#f8fafc; font-family:'Segoe UI',sans-serif; margin:0; padding:10px; font-size:13px;}
-        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
-        .header-title { font-size: 20px; font-weight: 800; } .header-clock { color: #94a3b8; font-family: monospace; }
+        /* ESTILOS EXACTOS DE LA VERSIÓN v225 */
+        body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; font-size: 13px; }
         
-        .layout-grid { display: grid; grid-template-columns: 180px 1fr 280px; gap: 10px; }
-        
-        /* ESTILOS DE MATRIZ 3D IDÉNTICOS A v219 */
-        .matrix-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0px; margin-top: 5px; width: 100%; box-sizing: border-box; border: 2px solid #334155; }
-        .cam-cell { background: #000; height: 45px; position: relative; border: 0.5px solid #1e293b; overflow: hidden; width: 100%; box-sizing: border-box; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-        .cam-cell:hover { z-index: 10; transform: scale(1.2); border: 1px solid #38bdf8; }
-        .cam-tag { position: absolute; bottom: 0; width: 100%; background: rgba(0,0,0,0.5); font-size: 8px; text-align: center; color: white; padding:1px; }
-        .cam-icon { font-size: 20px; opacity: 0.7; }
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        .header-title { font-size: 24px; font-weight: 800; letter-spacing: 1px; }
+        .header-clock { color: #94a3b8; font-family: monospace; font-size: 16px; }
 
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px; margin-bottom: 8px; }
-        .card-title { font-size: 10px; color: #38bdf8; font-weight: 800; margin-bottom: 5px; text-transform: uppercase; border-bottom: 1px solid #334155; }
-        .gauge-box { background: #0f172a; border-radius: 50%; width: 100px; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 5px auto; border: 4px solid #334155; transition: 0.5s; }
-        .g-green { border-color: #22c55e; color: #4ade80; } .g-red { border-color: #ef4444; color: #f87171; }
-        .val-text { font-size: 22px; font-weight: bold; } .lbl-text { font-size: 8px; color: #94a3b8; }
+        .layout-grid { display: grid; grid-template-columns: 200px 1fr 280px; gap: 15px; }
         
-        .video-main { width: 100%; height: 380px; background: #000; border-radius: 6px; object-fit: cover; border: 1px solid #334155; }
-        
-        .chat-container { height: 180px; display: flex; flex-direction: column; background: #0f172a; border-radius: 6px; border: 1px solid #334155; overflow: hidden; }
-        .chat-log { flex: 1; padding: 10px; color: #94a3b8; font-size:11px; text-align:center; display:flex; align-items:center; justify-content:center;}
-        
-        /* CLIMA VISUAL v219 */
-        .pred-box { background:#0f172a; border-left:4px solid #38bdf8; padding:5px; font-size:12px; color:#e2e8f0; margin-top:10px; min-height: 80px; border-radius: 4px; display:flex; align-items:center; gap:10px; }
-        .w-thumb { width:70px; height:70px; object-fit:cover; border-radius:4px; border:1px solid #334155; cursor:pointer; }
-        .w-text { flex:1; }
+        /* TARJETAS */
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-bottom: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
+        .card-title { font-size: 11px; color: #38bdf8; font-weight: 800; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #334155; padding-bottom: 4px; letter-spacing: 0.5px; }
 
-        .banner-neutral { background:#1e293b; color:#94a3b8; padding:10px; border-radius:4px; font-weight:bold; text-align:center; border:1px solid #334155; }
-        .banner-safe { background:#064e3b; color:#34d399; padding:10px; border-radius:4px; font-weight:bold; text-align:center; border:1px solid #059669; }
-        .banner-danger { background:#450a0a; color:#f87171; padding:10px; border-radius:4px; font-weight:bold; text-align:center; border:1px solid #ef4444; animation: blink 1s infinite; }
+        /* SENSORES */
+        .gauge-box { background: #0f172a; border-radius: 50%; width: 90px; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 8px auto; border: 4px solid #334155; transition: 0.3s; }
+        .g-green { border-color: #22c55e; color: #4ade80; }
+        .g-red { border-color: #ef4444; color: #f87171; }
+        .val-text { font-size: 20px; font-weight: bold; }
+        .lbl-text { font-size: 9px; color: #94a3b8; }
+
+        /* VIDEO PRINCIPAL */
+        .video-main { width: 100%; height: 400px; background: #000; border-radius: 6px; object-fit: cover; border: 2px solid #334155; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+
+        /* MATRIZ 3D */
+        .matrix-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; margin-top: 10px; width: 100%; background: #000; padding: 2px; border-radius: 4px; border: 1px solid #334155; }
+        .cam-cell { background: #0f172a; height: 40px; position: relative; overflow: hidden; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; border: 1px solid #1e293b; }
+        .cam-cell:hover { transform: scale(1.1); z-index: 10; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+        .cam-tag { font-size: 8px; color: #64748b; font-weight: bold; }
+
+        /* CLIMA */
+        .pred-box { background: #0f172a; border-left: 4px solid #38bdf8; padding: 8px; font-size: 12px; color: #e2e8f0; margin-top: 10px; min-height: 70px; border-radius: 4px; display: flex; align-items: center; gap: 10px; }
+        .w-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #334155; cursor: pointer; }
+        .w-text { flex: 1; line-height: 1.4; }
+
+        /* ALERTA BANNER */
+        .banner-neutral { background: #334155; color: #94a3b8; padding: 10px; border-radius: 4px; font-weight: bold; text-align: center; border: 1px solid #475569; margin-bottom: 10px; }
+        .banner-safe { background: #064e3b; color: #34d399; padding: 10px; border-radius: 4px; font-weight: bold; text-align: center; border: 1px solid #059669; margin-bottom: 10px; }
+        .banner-danger { background: #450a0a; color: #f87171; padding: 10px; border-radius: 4px; font-weight: bold; text-align: center; border: 1px solid #ef4444; animation: blink 1s infinite; margin-bottom: 10px; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        .pi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
-        .stat-box { background: #0f172a; padding: 4px; border-radius: 3px; text-align: center; border: 1px solid #334155; font-size: 9px; }
-        .stat-val { color: #38bdf8; font-weight: bold; }
-        
-        /* MODAL ZOOM */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9); align-items: center; justify-content: center; }
-        .modal-content { max-width: 90%; max-height: 90%; border: 2px solid #38bdf8; border-radius: 8px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
-        .close { position: absolute; top: 15px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
+        /* ESTADO SISTEMA */
+        .pi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .stat-box { background: #0f172a; padding: 5px; border-radius: 4px; text-align: center; border: 1px solid #334155; font-size: 10px; }
+        .stat-val { color: #38bdf8; font-weight: bold; display: block; margin-bottom: 2px; }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) { .layout-grid { grid-template-columns: 1fr; } .video-main { height: 250px; } }
+
+        /* MODAL */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); align-items: center; justify-content: center; }
+        .modal-content { max-width: 95%; max-height: 95%; border: 2px solid #38bdf8; box-shadow: 0 0 30px rgba(56, 189, 248, 0.3); border-radius: 8px; }
     </style>
 </head>
 <body>
 
-<div id="myModal" class="modal" onclick="document.getElementById('myModal').style.display='none'"><span class="close">&times;</span><img class="modal-content" id="img01"></div>
+<div id="myModal" class="modal" onclick="this.style.display='none'">
+    <img class="modal-content" id="img01">
+</div>
 
 <div class="header-bar">
     <div class="header-title">ZENTINEL <span style="color:#38bdf8">CLOUD</span></div>
@@ -59,130 +70,156 @@
 </div>
 
 <div class="layout-grid">
-  <div class="col-left">
-    <div class="card"><div class="card-title">SENSORES</div>
-        <div id="bgT" class="gauge-box"><span id="vT" class="val-text">--</span><span class="lbl-text">TEMP</span></div>
-        <div id="bgH" class="gauge-box"><span id="vH" class="val-text">--</span><span class="lbl-text">HUM</span></div>
-        <div id="bgN" class="gauge-box"><span id="vN" class="val-text">--</span><span class="lbl-text">NH3</span></div>
-        <div id="bgR" class="gauge-box"><span id="vR" style="font-size:30px;">☀️</span><span id="lR" class="lbl-text">SECO</span></div>
-    </div>
-    <div class="card">
-        <div class="card-title">ANÁLISIS CLIMÁTICO</div>
-        <div class="pred-box">
-            <img id="w-img" src="" class="w-thumb" onclick="showImg(this.src)">
-            <div id="wp" class="w-text">Conectando...</div>
+    <div class="col-left">
+        <div class="card">
+            <div class="card-title">SENSORES (PUERTO PLATA)</div>
+            <div id="bgT" class="gauge-box"><span id="vT" class="val-text">--</span><span class="lbl-text">TEMP</span></div>
+            <div id="bgH" class="gauge-box"><span id="vH" class="val-text">--</span><span class="lbl-text">HUM</span></div>
+            <div id="bgN" class="gauge-box"><span id="vN" class="val-text">--</span><span class="lbl-text">NH3</span></div>
+            <div id="bgR" class="gauge-box"><span id="vR" style="font-size:24px;">☀️</span><span id="lR" class="lbl-text">SECO</span></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">ANÁLISIS SATELITAL (NOAA)</div>
+            <div class="pred-box">
+                <img id="w-img" src="" class="w-thumb" onclick="verFoto(this.src)">
+                <div id="wp" class="w-text">Esperando conexión...</div>
+            </div>
         </div>
     </div>
-  </div>
 
-  <div class="col-center">
-    <div id="banner-ia" class="banner-neutral">Conectando a Firebase...</div>
-    <img id="live" class="video-main" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
-    
-    <div id="matrix" class="matrix-grid"></div>
+    <div class="col-center">
+        <div id="banner-ia" class="banner-neutral">Sincronizando con Raspberry Pi...</div>
+        
+        <img id="live" class="video-main" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" onclick="verFoto(this.src)">
+        <div style="text-align:right; font-size:10px; color:#555; margin-top:-20px; padding-right:10px; position:relative;">LIVE FEED</div>
 
-    <div class="card" style="margin-top:10px;">
-        <div class="card-title">CHAT CON INTELIGENCIA ARTIFICIAL</div>
-        <div class="chat-container"><div class="chat-log">Chat disponible solo en versión local</div></div>
+        <div id="matrix" class="matrix-grid"></div>
+        <div style="font-size:9px; color:#64748b; text-align:center; margin-top:2px;">MAPA DE CALOR MATRICIAL (F0-F3)</div>
     </div>
-  </div>
 
-  <div class="col-right">
-    <div class="card"><div class="card-title">ESTADO DEL SISTEMA</div>
-      <div class="pi-grid">
-          <div class="stat-box"><span id="ts" class="stat-val">--</span><br>SYNC</div>
-          <div class="stat-box"><span id="mot" class="stat-val">--</span><br>MOTOR</div>
-          <div class="stat-box"><span style="color:#22c55e">ONLINE</span><br>STATUS</div>
-      </div>
+    <div class="col-right">
+        <div class="card">
+            <div class="card-title">TELEMETRÍA SISTEMA</div>
+            <div class="pi-grid">
+                <div class="stat-box"><span id="ts" class="stat-val">--</span>SYNC</div>
+                <div class="stat-box"><span id="mot" class="stat-val">--</span>MOTOR</div>
+                <div class="stat-box"><span style="color:#22c55e" class="stat-val">ONLINE</span>ESTADO</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">VIENTO EN VIVO</div>
+            <iframe width="100%" height="150" src="https://embed.windy.com/embed2.html?lat=19.7&lon=-70.7&zoom=7&overlay=wind&menu=&message=&marker=&calendar=now&pressure=&type=map&location=coordinates&detail=&detailLat=19.7&detailLon=-70.7&metricWind=default&metricTemp=default&radarRange=-1" frameborder="0"></iframe>
+        </div>
+
+        <div class="card">
+            <div class="card-title">RADAR METEOROLÓGICO</div>
+            <iframe width="100%" height="200" src="https://radar-met2.sna.gob.do/" frameborder="0" style="border-radius:4px;"></iframe>
+        </div>
+        
+        <div style="text-align:center; color:#334155; font-size:10px; margin-top:20px;">
+            ZENTINEL AI LITE v225<br>Powered by Firebase & GitHub
+        </div>
     </div>
-    <div class="card"><div class="card-title">VIENTO</div><iframe width="100%" height="130" src="https://embed.windy.com/embed2.html?lat=19.7&lon=-70.7&zoom=7&overlay=wind" frameborder="0"></iframe></div>
-    <div class="card"><div class="card-title">RADAR</div><iframe width="100%" height="170" src="https://radar-met2.sna.gob.do/" frameborder="0"></iframe></div>
-  </div>
 </div>
 
 <script>
-    // 🔥 PON AQUÍ TU URL DE FIREBASE (Terminada en .json)
-    const DB_URL = "https://TU-PROYECTO.firebaseio.com/zentinel.json";
+    // =================================================================
+    // ⚠️ ATENCIÓN: PEGA AQUÍ TU URL DE FIREBASE (Termina en .json)
+    // =================================================================
+    const DB_URL = "https://zentinel-ia-default-rtdb.firebaseio.com/zentinel.json"; 
+    // =================================================================
 
-    function showImg(src){ 
-        if(!src || src.length < 100) return; 
-        document.getElementById('myModal').style.display='flex'; 
-        document.getElementById('img01').src=src; 
+    function verFoto(src) {
+        if (!src || src.length < 100) return;
+        document.getElementById('myModal').style.display = 'flex';
+        document.getElementById('img01').src = src;
     }
 
-    function setG(id, v, max) { 
-        let el=document.getElementById('v'+id); 
-        let bg=document.getElementById('bg'+id); 
-        el.innerText=v; 
-        bg.className='gauge-box '+(parseFloat(v)>max?'g-red':'g-green'); 
+    function setG(id, v, max) {
+        let el = document.getElementById('v' + id);
+        let bg = document.getElementById('bg' + id);
+        el.innerText = v;
+        // Lógica de colores para los medidores
+        if (parseFloat(v) > max) {
+            bg.className = 'gauge-box g-red';
+        } else {
+            bg.className = 'gauge-box g-green';
+        }
     }
 
-    // Generar Matriz vacía al inicio
+    // Generar la matriz vacía al cargar la página
     const matrixEl = document.getElementById('matrix');
     let matrixHTML = "";
-    for(let y=0; y<4; y++){
-        for(let x=0; x<6; x++){
-            matrixHTML += `<div id="c_${y}_${x}" class="cam-cell" onclick="verLive()"><div class="cam-tag">F${y}_C${x}</div><div class="cam-icon">📷</div></div>`;
+    for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < 6; x++) {
+            matrixHTML += `<div id="F${y}_C${x}" class="cam-cell" onclick="verFoto(document.getElementById('live').src)"><div class="cam-tag">F${y}C${x}</div></div>`;
         }
     }
     matrixEl.innerHTML = matrixHTML;
 
-    function verLive(){
-        // Al hacer click en matriz web, mostramos la imagen principal (Live Feed)
-        // Ya que no subimos 24 fotos individuales a la nube por peso.
-        let img = document.getElementById('live').src;
-        showImg(img);
-    }
-
-    async function sync() {
+    // Función principal de Sincronización
+    async function syncLoop() {
         try {
             const res = await fetch(DB_URL);
             const d = await res.json();
-            if(d) {
-                // Sensores
-                setG('T', d.t, 30); setG('H', d.h, 75); setG('N', d.n, 20);
-                document.getElementById('vR').innerText = d.r=='SI'?'⛈️':'☀️';
-                document.getElementById('ts').innerText = d.ts;
-                document.getElementById('mot').innerText = d.mot;
+
+            if (d) {
+                // 1. Sensores
+                setG('T', d.t || "--", 30);
+                setG('H', d.h || "--", 75);
+                setG('N', d.n || "--", 20);
+                document.getElementById('vR').innerText = (d.r == 'SI') ? '⛈️' : '☀️';
                 
-                // Clima
-                document.getElementById('wp').innerText = d.weather;
-                if(d.w_img) document.getElementById('w-img').src = "data:image/jpeg;base64," + d.w_img;
+                // 2. Tiempos y Motor
+                document.getElementById('ts').innerText = d.ts || "--:--";
+                document.getElementById('mot').innerText = d.mot || "OFF";
 
-                // Banner
+                // 3. Banner de IA (Limpiamos el HTML que viene de Java para seguridad básica)
                 const ban = document.getElementById('banner-ia');
-                // Convertir HTML local a Clases CSS simples
-                if(d.banner.includes("danger")) ban.className = "banner-danger";
-                else if(d.banner.includes("safe")) ban.className = "banner-safe";
+                const rawBanner = d.banner || "";
+                
+                if (rawBanner.includes("danger") || rawBanner.includes("ALERTA")) ban.className = "banner-danger";
+                else if (rawBanner.includes("safe") || rawBanner.includes("Normal")) ban.className = "banner-safe";
                 else ban.className = "banner-neutral";
-                ban.innerHTML = d.banner;
+                
+                // Extraer solo el texto del banner
+                ban.innerHTML = rawBanner;
 
-                // Imagen Principal
-                if(d.img) document.getElementById('live').src = "data:image/jpeg;base64," + d.img;
+                // 4. Clima y Fotos
+                document.getElementById('wp').innerText = d.weather || "Sin datos";
+                if (d.w_img) document.getElementById('w-img').src = "data:image/jpeg;base64," + d.w_img;
+                if (d.img) document.getElementById('live').src = "data:image/jpeg;base64," + d.img;
 
-                // Actualizar Colores Matriz
-                if(d.matrix) {
+                // 5. Pintar la Matriz
+                if (d.matrix) {
                     for (const [key, color] of Object.entries(d.matrix)) {
-                        // key viene como "F0_C0", en HTML es "c_0_0"
-                        let idHTML = "c_" + key.replace("F","").replace("_C","_");
-                        let celda = document.getElementById(idHTML);
-                        if(celda) {
-                            celda.style.border = "2px solid " + color;
-                            celda.style.backgroundColor = (color === "#ef4444") ? "rgba(239,68,68,0.2)" : "rgba(0,0,0,0.5)";
+                        let celda = document.getElementById(key);
+                        if (celda) {
+                            celda.style.border = "1px solid " + color;
+                            // Efecto de iluminación tenue
+                            celda.style.backgroundColor = color + "33"; // Agrega transparencia hex
+                            if(color === "#ef4444") celda.style.boxShadow = "inset 0 0 10px #ef4444";
+                            else celda.style.boxShadow = "none";
                         }
                     }
                 }
             }
-        } catch(e) { console.log(e); }
+        } catch (e) {
+            console.error("Error Sync:", e);
+        }
     }
 
-    setInterval(sync, 2000);
-    sync();
-    
+    // Iniciar bucle cada 2 segundos
+    setInterval(syncLoop, 2000);
+    syncLoop(); // Primera llamada inmediata
+
     // Reloj local
     setInterval(() => {
         document.getElementById('clock').innerText = new Date().toLocaleTimeString();
     }, 1000);
 </script>
+
 </body>
 </html>
