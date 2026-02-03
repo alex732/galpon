@@ -1,218 +1,70 @@
-import java.net.*;
-import java.io.*;
-import java.util.*;
-import java.util.concurrent.*;
-import com.sun.net.httpserver.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.nio.file.*;
-import java.util.Base64;
-import java.util.regex.*;
-
-/**
- * 🦅 ZENTINEL CORE (LITE v1.1 - CLOUD SYNC)
- * - Gestiona Sensores y Cámara.
- * - Conecta con Bridge IA (Local).
- * - Sube datos a Firebase para el Dashboard en GitHub.
- */
-public class ZentinelCore {
-    // ================= CONFIGURACIÓN DE USUARIO =================
-    // 1. TU FIREBASE (Crea una Realtime DB en modo prueba/público)
-    // El enlace debe terminar en '/'
-    private static final String FIREBASE_URL = "https://TU-PROYECTO-DEFAULT-RTDB.firebaseio.com/"; 
-    
-    // 2. TUS IPs LOCALES
-    private static final String IP_BRIDGE_IA = "192.168.1.100"; // Tu PC Dell
-    private static final String IP_CAMARA    = "192.168.1.101"; // Tu Cámara
-    private static final String USR_CAM      = "admin";
-    private static final String PWD_CAM      = "123456";
-    
-    // 3. CONFIGURACIÓN GEOGRÁFICA (Para NOAA)
-    private static final String LAT          = "19.79";
-    private static final String LON          = "-70.68";
-    private static final String UBICACION    = "Puerto Plata";
-    // ============================================================
-
-    private static final String URL_BRIDGE = "http://" + IP_BRIDGE_IA + ":8888/process";
-    private static final String URL_NOAA   = "https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/car/GEOCOLOR/1000x1000.jpg";
-    private static final String URL_API    = "https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+"&current=temperature_2m,precipitation,weather_code&timezone=auto";
-
-    // Variables Volátiles
-    private static volatile String iaBannerHTML = "☁️ INICIANDO SISTEMA...";
-    private static volatile String weatherPred = "Cargando...";
-    private static volatile byte[] liveFrame = new byte[0];
-    private static volatile byte[] snapshotFrame = new byte[0];
-    private static volatile String lastT="0", lastH="0", lastN="0", lastR="NO";
-    
-    // Control
-    private static final Object frameLock = new Object();
-    private static volatile boolean iaServerOnline = false;
-    private static volatile boolean iaOcupada = false;
-    private static final List<String> logList = new CopyOnWriteArrayList<>();
-
-    public static void main(String[] args) {
-        log("BOOT", "Zentinel Lite v1.1 (Cloud Enabled)");
-
-        // 1. Hilo Sensores (UDP)
-        new Thread(() -> { 
-            try(DatagramSocket s = new DatagramSocket(5000)){ 
-                byte[] b=new byte[1024]; 
-                while(true){ 
-                    DatagramPacket p=new DatagramPacket(b,b.length); s.receive(p); 
-                    parseSensor(new String(p.getData(),0,p.getLength()).trim()); 
-                } 
-            }catch(Exception e){ log("UDP", "Modo Simulación (Sin Arduino)"); } 
-        }).start();
-
-        // 2. Hilo Watchdog & Stats
-        new Thread(() -> { while(true) { checkBridge(); try{Thread.sleep(5000);}catch(Exception e){} } }).start();
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zentinel Cloud Dashboard</title>
+    <style>
+        body { background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .container { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h1 { color: #38bdf8; margin-bottom: 5px; }
+        .status-bar { font-size: 12px; color: #94a3b8; margin-bottom: 20px; font-family: monospace; }
+        .live-feed { width: 100%; border-radius: 8px; border: 2px solid #334155; margin-bottom: 15px; }
+        .banner { padding: 10px; border-radius: 6px; font-weight: bold; font-size: 14px; margin-bottom: 10px; }
+        .b-neutral { background: #334155; color: #cbd5e1; }
+        .b-alert { background: #ef4444; color: white; animation: blink 1s infinite; }
+        .b-safe { background: #22c55e; color: white; }
+        .weather-box { background: #0f172a; padding: 10px; border-radius: 6px; font-size: 12px; border-left: 4px solid #f59e0b; text-align: left; }
+        @keyframes blink { 50% { opacity: 0.7; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦅 Zentinel Cloud</h1>
+        <div class="status-bar">Última sinc: <span id="ts">--:--:--</span></div>
         
-        // 3. Hilo Clima (15 min)
-        new Thread(() -> { while(true) { try { if(iaServerOnline) checkWeather(); Thread.sleep(900000); } catch(Exception e){} } }).start();
+        <div id="banner" class="banner b-neutral">Esperando conexión...</div>
         
-        // 4. 🔥 HILO FIREBASE (Sube datos a la nube cada 3s)
-        new Thread(() -> { while(true) { subirAFirebase(); try{Thread.sleep(3000);}catch(Exception e){} } }).start();
+        <img id="cam" class="live-feed" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Live Feed">
+        
+        <div class="weather-box">
+            <strong>🛰️ CLIMA:</strong> <span id="weather">--</span>
+        </div>
+    </div>
 
-        // Motores
-        ejecutarMotorMatricial(); 
-        videoEngine(); 
-        iniciarServidorLocal(9090);
-    }
+    <script>
+        // 🔥 PON TU URL DE FIREBASE AQUÍ (Debe terminar en .json)
+        const DB_URL = "https://TU-PROYECTO.firebaseio.com/zentinel.json";
 
-    // --- SINCRONIZACIÓN NUBE (FIREBASE) ---
-    private static void subirAFirebase() {
-        try {
-            // Preparamos la imagen (Base64)
-            String img64 = "";
-            synchronized(frameLock) { if(liveFrame.length > 0) img64 = Base64.getEncoder().encodeToString(liveFrame); }
-            
-            // Construimos JSON manual (Sin librerías externas para ser Lite)
-            // IMPORTANTE: Reemplazar comillas dobles en textos por simples para no romper el JSON
-            String json = String.format(
-                "{" +
-                "\"ts\":\"%s\"," +
-                "\"t\":\"%s\",\"h\":\"%s\",\"n\":\"%s\",\"r\":\"%s\"," +
-                "\"banner\":\"%s\"," +
-                "\"weather\":\"%s\"," +
-                "\"cam_img\":\"%s\"," +
-                "\"ia_status\":%b" +
-                "}",
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")),
-                lastT, lastH, lastN, lastR,
-                iaBannerHTML.replace("\"", "'"),
-                weatherPred.replace("\"", "'"),
-                img64,
-                iaServerOnline
-            );
-
-            // PUT a Firebase (Sobrescribe zentinel.json)
-            URL url = new URL(FIREBASE_URL + "zentinel.json");
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("PUT");
-            con.setDoOutput(true);
-            con.setConnectTimeout(3000);
-            try(OutputStream os = con.getOutputStream()) { os.write(json.getBytes("UTF-8")); }
-            con.getInputStream().close(); // Ejecutar petición
-            
-        } catch (Exception e) { 
-            // Silencioso para no llenar logs si no hay internet
-        }
-    }
-
-    // --- LÓGICA IA ---
-    private static void checkWeather() {
-        try {
-            byte[] map = download(URL_NOAA);
-            String data = downloadTxt(URL_API);
-            if(map.length > 0) {
-                String r = callBridge(map, "Meteorólogo. Ubicación: "+UBICACION+". API: "+data+". ¿Lluvia inminente? SÍ/NO y breve razón.");
-                if(!r.startsWith("Error")) { weatherPred = "🛰️ " + r; log("CLIMA", "Actualizado"); }
-            }
-        } catch(Exception e){}
-    }
-
-    private static void procesarFrame(String zona) {
-        byte[] f; synchronized(frameLock){ f = snapshotFrame.clone(); }
-        if(f.length > 0 && iaServerOnline && !iaOcupada) {
-            new Thread(() -> {
-                iaOcupada=true;
-                log("IA", "Analizando " + zona);
-                String r = callBridge(f, "Veterinario. Zona "+zona+". ¿Pollos muertos o sangre? Si borroso di OK. Breve.");
+        async function fetchData() {
+            try {
+                const res = await fetch(DB_URL);
+                const data = await res.json();
                 
-                if(r.toUpperCase().contains("ALERTA") || r.toUpperCase().contains("MUERTO")) {
-                    iaBannerHTML = "<div class='alert-danger'>🚨 " + zona + ": " + r + "</div>";
-                } else if (!r.startsWith("Error")) {
-                    iaBannerHTML = "<div class='alert-safe'>✅ " + zona + ": " + r + "</div>";
-                }
-                iaOcupada=false;
-            }).start();
-        }
-    }
+                if (data) {
+                    document.getElementById('ts').innerText = data.ts;
+                    document.getElementById('weather').innerText = data.weather;
+                    
+                    // Actualizar Banner
+                    const ban = document.getElementById('banner');
+                    ban.innerText = data.banner;
+                    if(data.banner.includes("ALERTA")) ban.className = "banner b-alert";
+                    else if(data.banner.includes("Normal")) ban.className = "banner b-safe";
+                    else ban.className = "banner b-neutral";
 
-    private static String callBridge(byte[] img, String prompt) {
-        try {
-            String b64 = Base64.getEncoder().encodeToString(img);
-            String json = "{\"prompt\":\""+prompt+"\",\"image\":\""+b64+"\"}";
-            URL u = new URL(URL_BRIDGE);
-            HttpURLConnection c = (HttpURLConnection) u.openConnection();
-            c.setRequestMethod("POST"); c.setDoOutput(true); c.setReadTimeout(120000);
-            try(OutputStream os = c.getOutputStream()){ os.write(json.getBytes("UTF-8")); }
-            try(BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream(),"UTF-8"))){ return br.readLine(); }
-        } catch(Exception e) { return "Error Bridge"; }
-    }
-
-    // --- UTILS & MOTORES ---
-    private static void log(String tag, String msg) {
-        System.out.println("["+tag+"] " + msg);
-        logList.add(0, String.format("[%s] %s: %s", LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")), tag, msg));
-        if(logList.size()>20) logList.remove(20);
-    }
-    
-    private static void ejecutarMotorMatricial() {
-        new Thread(() -> {
-            while(true) {
-                try {
-                    ptz("ptzMoveUp", 3000); ptz("ptzMoveLeft", 12000); // Home
-                    for(int y=0; y<4; y++) {
-                        for(int x=0; x<6; x++) {
-                            Thread.sleep(2500);
-                            synchronized(frameLock){ snapshotFrame = liveFrame.clone(); }
-                            procesarFrame("F"+y+"_C"+x);
-                            if(x<5) ptz("ptzMoveRight", 3000);
-                        }
-                        if(y<3) { ptz("ptzMoveDown", 2000); ptz("ptzMoveLeft", 18000); Thread.sleep(1500); }
+                    // Actualizar Imagen
+                    if(data.img) {
+                        document.getElementById('cam').src = "data:image/jpeg;base64," + data.img;
                     }
-                    Thread.sleep(60000);
-                } catch(Exception e){}
+                }
+            } catch (e) {
+                console.error("Error conectando a Firebase", e);
             }
-        }).start();
-    }
+        }
 
-    private static void ptz(String cmd, long ms) {
-        try { new URL("http://"+IP_CAM+":88/cgi-bin/CGIProxy.fcgi?cmd="+cmd+"&usr="+USR_CAM+"&pwd="+PWD_CAM).openStream().close(); 
-        if(ms>0) { Thread.sleep(ms); new URL("http://"+IP_CAM+":88/cgi-bin/CGIProxy.fcgi?cmd=ptzStopRun&usr="+USR_CAM+"&pwd="+PWD_CAM).openStream().close(); }
-        } catch(Exception e){}
-    }
-
-    private static void videoEngine() {
-        new Thread(()->{ while(true){ try{ liveFrame = download("http://"+IP_CAM+":88/cgi-bin/CGIProxy.fcgi?cmd=snapPicture2&usr="+USR_CAM+"&pwd="+PWD_CAM); Thread.sleep(200); }catch(Exception e){} } }).start();
-    }
-
-    private static byte[] download(String u) throws Exception { return new URL(u).openStream().readAllBytes(); }
-    private static String downloadTxt(String u) { try{return new String(download(u));}catch(Exception e){return "{}";} }
-    private static void parseSensor(String r) { /* Parse Arduino Logic */ }
-    private static void checkBridge() { try{ new Socket(IP_BRIDGE_IA, 8888).close(); iaServerOnline=true; }catch(Exception e){iaServerOnline=false;} }
-
-    // --- SERVIDOR WEB LOCAL (Respaldo) ---
-    private static void iniciarServidorLocal(int port) {
-        try {
-            HttpServer s = HttpServer.create(new InetSocketAddress(port),0);
-            s.createContext("/", e -> {
-                String html = "<h1>Zentinel Local Lite</h1><p>Los datos se estan enviando a Firebase.</p><p>Visita tu GitHub Page.</p>";
-                e.sendResponseHeaders(200, html.length()); e.getResponseBody().write(html.getBytes()); e.close();
-            });
-            s.start();
-            log("WEB", "Local server en puerto " + port);
-        } catch(Exception e){}
-    }
-}
+        // Sondear cada 2 segundos
+        setInterval(fetchData, 2000);
+        fetchData();
+    </script>
+</body>
+</html>
