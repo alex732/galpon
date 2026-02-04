@@ -89,6 +89,20 @@
         let lastD = null;
         function expandWeather() { if(!lastD)return; document.getElementById('weatherModal').style.display='flex'; document.getElementById('w-img-large').src="data:image/jpeg;base64,"+lastD.w_img; document.getElementById('w-info-large').innerText=lastD.weather; document.getElementById('w-stats-large').innerText=`T: ${lastD.t}°C | H: ${lastD.h}%`; }
         async function update() {
+            // Dentro de la función update() en GitHub:
+let mHtml = ''; 
+for(let y=0; y<4; y++){
+    for(let x=0; x<6; x++){
+        let id = `F${y}_C${x}`;
+        let color = d.matrix ? (d.matrix[id] || '#1e293b') : '#1e293b';
+        let thumb = d.presets ? (d.presets[id] || '') : '';
+        mHtml += `<div class="cam-cell" style="border:1px solid ${color}">
+                    ${thumb ? `<img src="data:image/jpeg;base64,${thumb}">` : ''}
+                    <div class="cam-tag">${id}</div>
+                  </div>`;
+    }
+}
+document.getElementById('matrix').innerHTML = mHtml;
             try {
                 const r = await fetch(FB_URL); const d = await r.json(); lastD = d;
                 document.getElementById('vT').innerText=d.t; document.getElementById('vH').innerText=d.h; document.getElementById('vN').innerText=d.n;
