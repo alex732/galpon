@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZENTINEL AI | REMOTE LITE</title>
+    <title>ZENTINEL AI | REMOTE MONITOR v258</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
@@ -22,185 +22,258 @@
             color: #f8fafc;
             font-family: sans-serif;
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 0;
+            overflow-x: hidden;
         }
 
+        /* --- HEADER --- */
         .header {
-            width: 100%;
             background: #020617;
             border-bottom: 2px solid var(--border);
-            padding: 15px 0;
-            text-align: center;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 1000;
         }
 
         .brand {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
             color: var(--neon);
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
 
-        .container {
-            width: 95%;
-            max-width: 600px;
-            margin-top: 20px;
+        .status-pill {
+            font-family: monospace;
+            font-size: 12px;
+            color: #94a3b8;
         }
 
-        .grid {
+        /* --- LAYOUT --- */
+        .layout {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            padding: 15px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
+        @media (min-width: 768px) {
+            .layout { grid-template-columns: 220px 1fr 300px; }
+        }
+
+        /* --- CARDS --- */
         .card {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 15px;
-            text-align: center;
-            position: relative;
-        }
-
-        .card-h {
-            font-size: 10px;
-            color: var(--neon);
-            text-transform: uppercase;
-            font-weight: 800;
             margin-bottom: 10px;
         }
 
-        .val {
-            font-size: 28px;
-            font-weight: bold;
-        }
-
-        .unit {
-            font-size: 14px;
-            color: #94a3b8;
-        }
-
-        .alert-box {
-            grid-column: span 2;
-            background: #450a0a;
-            border: 1px solid var(--error);
-            color: #f87171;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-family: monospace;
-            display: none; /* Se activa si hay alertas */
-        }
-
-        .status-bar {
-            grid-column: span 2;
+        .card-h {
             font-size: 11px;
-            color: #94a3b8;
-            display: flex;
-            justify-content: space-between;
-            padding: 5px;
+            color: var(--neon);
+            font-weight: 800;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            text-transform: uppercase;
         }
 
-        .dot {
-            height: 8px;
-            width: 8px;
-            background-color: var(--ok);
+        /* --- GAUGES (Diseño v258) --- */
+        .gauge-box {
+            background: #0f172a;
             border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
-            box-shadow: 0 0 8px var(--ok);
+            width: 100px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            border: 4px solid var(--border);
+            transition: all 0.5s ease;
         }
 
-        #rain-icon { font-size: 40px; }
+        .val { font-size: 24px; font-weight: bold; }
+        .lbl { font-size: 10px; color: #94a3b8; }
+
+        .g-ok { border-color: var(--ok); color: #4ade80; box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+        .g-warn { border-color: #fbbf24; color: #fbbf24; }
+        .g-error { border-color: var(--error); color: #f87171; box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+
+        /* --- VISUALS --- */
+        .noaa-img {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .banner-ia {
+            background: #064e3b;
+            color: #34d399;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 15px;
+            border: 1px solid var(--ok);
+        }
+
+        .alert-active {
+            background: #450a0a;
+            color: #f87171;
+            border-color: var(--error);
+            animation: blink 1s infinite;
+        }
+
+        /* --- INFO BOXES --- */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .stat-val {
+            display: block;
+            color: var(--neon);
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        @keyframes blink { 50% { opacity: 0.6; } }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="brand">ZENTINEL REMOTE v281</div>
+        <div class="brand">ZENTINEL REMOTE AI</div>
+        <div class="status-pill" id="last-sync">Sincronizando...</div>
     </div>
 
-    <div class="container">
-        <div class="grid">
+    <div class="layout">
+        <div class="col">
             <div class="card">
-                <div class="card-h">Temperatura</div>
-                <div class="val"><span id="temp">--</span><span class="unit">°C</span></div>
+                <div class="card-h">Sensores Real-Time</div>
+                <div id="gT" class="gauge-box"><span id="vT" class="val">--</span><span class="lbl">TEMP</span></div>
+                <div id="gH" class="gauge-box"><span id="vH" class="val">--</span><span class="lbl">HUM</span></div>
+                <div id="gN" class="gauge-box"><span id="vN" class="val">--</span><span class="lbl">NH3</span></div>
+                <div id="gR" class="gauge-box"><span id="vR" style="font-size: 35px;">☀️</span><span class="lbl">LLUVIA</span></div>
             </div>
             <div class="card">
-                <div class="card-h">Humedad</div>
-                <div class="val"><span id="hum">--</span><span class="unit">%</span></div>
+                <div class="card-h">Satélite NOAA</div>
+                <img src="https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/car/GEOCOLOR/latest.jpg" class="noaa-img">
             </div>
-            <div class="card">
-                <div class="card-h">Amoníaco (NH3)</div>
-                <div class="val"><span id="nh3">--</span><span class="unit">ppm</span></div>
-            </div>
-            <div class="card">
-                <div class="card-h">Lluvia</div>
-                <div id="rain-icon">☀️</div>
-            </div>
+        </div>
 
-            <div id="alert-card" class="alert-box">
-                <b>⚠️ ALERTA IA:</b> <span id="ia-msg">Analizando...</span>
-            </div>
-
-            <div class="card" style="grid-column: span 2; text-align: left;">
-                <div class="card-h">Estado del Sistema</div>
-                <div style="font-size: 12px;">
-                    <div>⚙️ Motor PTZ: <span id="motor" style="color:var(--neon)">--</span></div>
-                    <div>🕒 Última Sincronización: <span id="sync">--</span></div>
+        <div class="col">
+            <div id="ia-banner" class="banner-ia">ESPERANDO DATOS DE RASPBERRY...</div>
+            
+            <div class="card">
+                <div class="card-h">Análisis del Veterinario IA</div>
+                <div id="ia-report" style="font-family: monospace; font-size: 14px; line-height: 1.5; color: #e2e8f0;">
+                    Monitoreando actividad en el galpón...
                 </div>
             </div>
 
-            <div class="status-bar">
-                <div><span class="dot"></span> LIVE FROM PUERTO PLATA</div>
-                <div id="status-text">CONECTADO A FIREBASE</div>
+            <div class="card">
+                <div class="card-h">Ubicación: Puerto Plata, RD</div>
+                <iframe style="width:100%; height:300px; border-radius:8px; border:0;" 
+                    src="https://embed.windy.com/embed2.html?lat=19.7253&lon=-70.7397&zoom=11&overlay=wind">
+                </iframe>
+            </div>
+        </div>
+
+        <div class="col">
+            <div class="card">
+                <div class="card-h">Estado del Sistema</div>
+                <div class="stat-grid">
+                    <div class="stat-item">MOTOR PTZ <span id="s-motor" class="stat-val">--</span></div>
+                    <div class="stat-item">IA DELL <span id="s-ia" class="stat-val">--</span></div>
+                    <div class="stat-item">ARDUINO <span id="s-ard" class="stat-val">--</span></div>
+                    <div class="stat-item">CLIMA <span id="s-clima" class="stat-val">--</span></div>
+                </div>
+            </div>
+
+            <div class="card" style="background: #020617;">
+                <div class="card-h" style="color: #ef4444;">Logs de Alerta Remotos</div>
+                <div id="remote-logs" style="font-family: monospace; font-size: 11px; height: 200px; overflow-y: auto; color: #f87171;">
+                    Esperando eventos...
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- CONFIGURACIÓN DE FIREBASE ---
-        // Pega aquí tus credenciales de Firebase Console
+        // --- CONFIGURACIÓN FIREBASE ---
         const firebaseConfig = {
             databaseURL: "https://zentinel-ai-default-rtdb.firebaseio.com"
         };
 
-        // Inicializar Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database().ref('status');
 
-        // Escuchar cambios en tiempo real
+        // --- LÓGICA DE ACTUALIZACIÓN ---
         db.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                // Actualizar UI
-                document.getElementById('temp').innerText = data.temp;
-                document.getElementById('hum').innerText = data.hum;
-                document.getElementById('nh3').innerText = data.nh3;
-                document.getElementById('motor').innerText = data.motor;
-                document.getElementById('sync').innerText = data.lastUpdate;
-                
-                // Lluvia
-                document.getElementById('rain-icon').innerText = data.rain === "SI" ? "⛈️" : "☀️";
+            const d = snapshot.val();
+            if (!d) return;
 
-                // Alertas IA
-                const alertBox = document.getElementById('alert-card');
-                const iaMsg = document.getElementById('ia-msg');
-                if (data.iaAlert && data.iaAlert !== "Sin alertas" && data.iaAlert !== "Analizando...") {
-                    alertBox.style.display = "block";
-                    iaMsg.innerText = data.iaAlert;
-                } else {
-                    alertBox.style.display = "none";
-                }
+            // Actualizar Sensores y Colores
+            updateGauge('T', d.temp, 32);
+            updateGauge('H', d.hum, 75);
+            updateGauge('N', d.nh3, 25);
+            
+            document.getElementById('vR').innerText = d.rain === "SI" ? "⛈️" : "☀️";
+            document.getElementById('gR').className = "gauge-box " + (d.rain === "SI" ? "g-error" : "g-ok");
+
+            // Banner e Informe IA
+            const banner = document.getElementById('ia-banner');
+            const isAlert = d.iaAlert.toUpperCase().includes("MUERTO") || d.iaAlert.toUpperCase().includes("ALERTA");
+            
+            banner.innerText = isAlert ? "⚠️ ALERTA: " + d.iaAlert : "✅ SISTEMA NORMAL";
+            banner.className = "banner-ia " + (isAlert ? "alert-active" : "");
+            document.getElementById('ia-report').innerText = d.iaAlert;
+
+            // Stats del Sistema
+            document.getElementById('s-motor').innerText = d.motor;
+            document.getElementById('s-ia').innerText = "ONLINE";
+            document.getElementById('s-ard').innerText = "ONLINE";
+            document.getElementById('last-sync').innerText = "SYNC: " + d.lastUpdate;
+
+            // Logs (Simulados de Firebase)
+            if(isAlert) {
+                const logBox = document.getElementById('remote-logs');
+                const entry = `<div>[${d.lastUpdate}] ${d.iaAlert}</div>`;
+                logBox.innerHTML = entry + logBox.innerHTML;
             }
-        }, (error) => {
-            document.getElementById('status-text').innerText = "ERROR DE CONEXIÓN";
-            document.getElementById('status-text').style.color = "var(--error)";
         });
+
+        function updateGauge(id, val, max) {
+            const el = document.getElementById('v' + id);
+            const box = document.getElementById('g' + id);
+            const num = parseFloat(val);
+            el.innerText = val + (id === 'N' ? "" : (id === 'T' ? "°" : "%"));
+            
+            if (num > max) box.className = "gauge-box g-error";
+            else if (num > max * 0.8) box.className = "gauge-box g-warn";
+            else box.className = "gauge-box g-ok";
+        }
     </script>
 </body>
 </html>
