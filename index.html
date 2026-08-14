@@ -178,6 +178,43 @@
             }
         }
 
+        // Creación del Botón Flotante de Estímulo para Aves
+        const crearBotonSonido = () => {
+            const btn = document.createElement('button');
+            btn.id = 'btn-estimulo';
+            btn.innerHTML = '🔊 ESTIMULAR AVES';
+            btn.style.position = 'fixed';
+            btn.style.bottom = '30px';
+            btn.style.right = '30px';
+            btn.style.padding = '12px 24px';
+            btn.style.backgroundColor = '#f59e0b';
+            btn.style.color = '#111';
+            btn.style.border = '2px solid #b45309';
+            btn.style.borderRadius = '8px';
+            btn.style.fontWeight = 'bold';
+            btn.style.cursor = 'pointer';
+            btn.style.zIndex = '9999';
+            btn.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4)';
+            btn.style.fontFamily = 'monospace';
+            btn.style.transition = 'all 0.3s ease';
+
+            let soundActive = false;
+            btn.onclick = async () => {
+                soundActive = !soundActive;
+                btn.innerHTML = soundActive ? '🔇 DETENER SONIDO' : '🔊 ESTIMULAR AVES';
+                btn.style.backgroundColor = soundActive ? '#ef4444' : '#f59e0b';
+                btn.style.color = soundActive ? '#fff' : '#111';
+                btn.style.borderColor = soundActive ? '#991b1b' : '#b45309';
+                
+                try {
+                    // Nota: En la versión Firebase/GitHub remota, esto puede apuntar a tu API local o evento en Firebase
+                    await fetch('/api/cam/sound?action=' + (soundActive ? 'start' : 'stop')).catch(() => {});
+                } catch(e) {}
+            };
+            document.body.appendChild(btn);
+        };
+        crearBotonSonido();
+
         let lastCamUpdateTs = 0; let lastArdUpdateTs = 0; let lastIaUpdateTs = 0;
 
         setInterval(async () => {
@@ -188,27 +225,30 @@
 
                 if (!d) return;
 
-                document.getElementById('vT').innerText = d.t + '°';
-                document.getElementById('vH').innerText = d.h + '%';
-                document.getElementById('vN').innerText = d.n;
-                document.getElementById('vR').innerText = d.r;
-                document.getElementById('topDate').innerText = d.ts;
-                document.getElementById('cpu').innerText = d.cpu;
-                document.getElementById('ram').innerText = d.ram;
-                document.getElementById('dsk').innerText = d.dsk;
-                document.getElementById('ptemp').innerText = d.pt;
-                document.getElementById('wssid').innerText = d.wn;
+                // Temperatura Principal del Arduino separada independientemente
+                document.getElementById('vT').innerText = (d.t !== undefined ? d.t : '--') + '°';
+                document.getElementById('vH').innerText = (d.h !== undefined ? d.h : '--') + '%';
+                document.getElementById('vN').innerText = d.n !== undefined ? d.n : '--';
+                document.getElementById('vR').innerText = d.r !== undefined ? (d.r == 1 ? '🌧️' : '⛅') : '--';
+                
+                document.getElementById('topDate').innerText = d.ts || '--:--';
+                document.getElementById('cpu').innerText = d.cpu || '--';
+                document.getElementById('ram').innerText = d.ram || '--';
+                document.getElementById('dsk').innerText = d.dsk || '--';
+                document.getElementById('ptemp').innerText = d.pt || '--';
+                document.getElementById('wssid').innerText = d.wn || '--';
                 document.getElementById('dcpu').innerText = d.dcpu || '--';
                 document.getElementById('dram').innerText = d.dram || '--';
                 document.getElementById('ddsk').innerText = d.ddsk || '--';
-                document.getElementById('w-pred').innerText = d.wp;
+                document.getElementById('w-pred').innerText = d.wp || 'Monitoreando...';
                 
-                document.getElementById('b-aves').innerText = d.bio_a || '--';
-                document.getElementById('b-estado').innerText = d.bio_e || '--';
-                document.getElementById('b-peso').innerText = d.bio_p || '--';
-                document.getElementById('b-temp').innerText = d.bio_t || '--';
-                document.getElementById('b-cama').innerText = d.bio_c || '--';
-                document.getElementById('b-dist').innerText = d.bio_d || '--';
+                // Biometría IA (Con temperatura de IA aislada en 'b-temp')
+                document.getElementById('b-aves').innerText = d.bio_a || '0';
+                document.getElementById('b-peso').innerText = d.bio_p || '';
+                document.getElementById('b-temp').innerText = d.bio_t || '';
+                document.getElementById('b-estado').innerText = d.bio_e || '';
+                document.getElementById('b-cama').innerText = d.bio_c || '';
+                document.getElementById('b-dist').innerText = d.bio_d || '';
 
                 let chatEl = document.getElementById('chat');
                 if (d.logs && Array.isArray(d.logs)) {
@@ -233,17 +273,17 @@
                     if (d.ia_logs.length > 0) latestAlert = d.ia_logs[d.ia_logs.length - 1].replace('► ', '');
                 }
                 
-                document.getElementById('banner').innerHTML = `<span style='color:#a7f3d0;font-size:9px;text-transform:uppercase;'>[ ESTADO DEL SISTEMA: ${d.ia} ]</span><span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
+                document.getElementById('banner').innerHTML = `<span style='color:#a7f3d0;font-size:9px;text-transform:uppercase;'>[ ESTADO DEL SISTEMA: ${d.ia || 'INICIANDO'} ]</span><span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
                 
                 let pulseCam = document.getElementById('cam-pulse');
-                if (d.lcu > lastCamUpdateTs) { pulseCam.classList.remove('beat'); void pulseCam.offsetWidth; pulseCam.classList.add('beat'); lastCamUpdateTs = d.lcu; }
+                if (d.lcu && d.lcu > lastCamUpdateTs) { pulseCam.classList.remove('beat'); void pulseCam.offsetWidth; pulseCam.classList.add('beat'); lastCamUpdateTs = d.lcu; }
                 let pulseArd = document.getElementById('ard-pulse');
-                if (d.lau > lastArdUpdateTs) { pulseArd.classList.remove('beat'); void pulseArd.offsetWidth; pulseArd.classList.add('beat'); lastArdUpdateTs = d.lau; }
+                if (d.lau && d.lau > lastArdUpdateTs) { pulseArd.classList.remove('beat'); void pulseArd.offsetWidth; pulseArd.classList.add('beat'); lastArdUpdateTs = d.lau; }
                 let pulseIa = document.getElementById('ia-pulse');
-                if (d.liu > lastIaUpdateTs) { pulseIa.classList.remove('beat'); void pulseIa.offsetWidth; pulseIa.classList.add('beat'); lastIaUpdateTs = d.liu; }
+                if (d.liu && d.liu > lastIaUpdateTs) { pulseIa.classList.remove('beat'); void pulseIa.offsetWidth; pulseIa.classList.add('beat'); lastIaUpdateTs = d.liu; }
                 
                 if(d.ws) {
-                    let dbmStr = d.ws.replace('dBm', '').trim();
+                    let dbmStr = String(d.ws).replace('dBm', '').trim();
                     let dbm = parseInt(dbmStr);
                     if (!isNaN(dbm)) {
                         let bars = 0;
