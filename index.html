@@ -33,8 +33,6 @@
         .w-bar.on { background: #10b981; box-shadow: 0 0 5px #10b981; }
         .wb1 { height: 25%; } .wb2 { height: 50%; } .wb3 { height: 75%; } .wb4 { height: 100%; }
         .pulse-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #334155; vertical-align: middle; margin-right: 3px; }
-        .beat { animation: heartbeat 0.5s ease-out; }
-        @keyframes heartbeat { 0% { transform: scale(1); background: #10b981; box-shadow: 0 0 8px #10b981; } 100% { transform: scale(1); background: #334155; } }
     </style>
 </head>
 <body>
@@ -169,7 +167,6 @@
             const d = snapshot.val();
             if (!d) return;
 
-            // Sensores según estructura de Firebase (temperatura, humedad, nh3_ppm, lluvia)
             document.getElementById('vT').innerText = (d.temperatura !== undefined ? d.temperatura : '--') + '°';
             document.getElementById('vH').innerText = (d.humedad !== undefined ? d.humedad : '--') + '%';
             document.getElementById('vN').innerText = (d.nh3_ppm !== undefined ? d.nh3_ppm : '--');
@@ -183,12 +180,25 @@
 
             if(d.wp) document.getElementById('w-pred').innerText = d.wp;
 
-            // Biometría
-            if(document.getElementById('b-aves')) document.getElementById('b-aves').innerText = d.bio_a || '--';
-            if(document.getElementById('b-peso')) document.getElementById('b-peso').innerText = d.bio_p || '--';
-            if(document.getElementById('b-state')) document.getElementById('b-state').innerText = d.bio_e || '--';
+            document.getElementById('b-aves').innerText = d.bio_a || '--';
+            document.getElementById('b-peso').innerText = d.bio_p || '--';
+            if(d.bio_t) document.getElementById('b-temp').innerText = d.bio_t || '--';
+            if(d.bio_e) document.getElementById('b-estado').innerText = d.bio_e || '--';
+            if(d.bio_c) document.getElementById('b-cama').innerText = d.bio_c || '--';
+            if(d.bio_d) document.getElementById('b-dist').innerText = d.bio_d || '--';
 
-            // Logs y Terminales
+            // Renderizado del banner principal de IA y alertas
+            let latestAlert = 'ESPERANDO ANÁLISIS...';
+            if (d.ia_logs && Array.isArray(d.ia_logs) && d.ia_logs.length > 0) {
+                let lastLog = d.ia_logs[d.ia_logs.length - 1];
+                if (typeof lastLog === 'string') {
+                    latestAlert = lastLog.replace('► ', '');
+                }
+            }
+            let bannerHtml = `<span style='color:#a7f3d0;font-size:9px;text-transform:uppercase;'>[ ESTADO DEL SISTEMA: ${d.ia || 'INICIANDO'} ]</span>`;
+            bannerHtml += `<span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
+            document.getElementById('banner').innerHTML = bannerHtml;
+
             if(d.sys_logs && Array.isArray(d.sys_logs)) {
                 document.getElementById('chat').innerHTML = d.sys_logs.join('<br>');
             }
@@ -199,7 +209,6 @@
                 document.getElementById('ia-log').innerHTML = d.ia_logs.join('<br><br>');
             }
 
-            // Imágenes y Matriz
             if (d.cam_snapshot_url) {
                 document.getElementById('live-snap').src = d.cam_snapshot_url;
             }
