@@ -211,16 +211,18 @@
         crearBotonSonido();
 
         let lastCamUpdateTs = 0; let lastArdUpdateTs = 0; let lastIaUpdateTs = 0;
-
         const valOr = (val, def) => (!val || val === '--') ? def : val;
 
         setInterval(async () => {
             try {
                 const resp = await fetch(FIREBASE_DB_URL + "zentinel/data.json" + FIREBASE_AUTH + "&t=" + Date.now());
-                if (!resp.ok) throw new Error("Firebase rechazó la conexión.");
+                if (!resp.ok) throw new Error("Firebase rechazó la conexión (HTTP " + resp.status + ")");
                 const d = await resp.json();
 
-                if (!d) return;
+                if (!d) {
+                    console.warn("Firebase respondió vacío (null)");
+                    return;
+                }
 
                 document.getElementById('vT').innerText = (d.t !== undefined ? d.t : '--') + '°';
                 document.getElementById('vH').innerText = (d.h !== undefined ? d.h : '--') + '%';
@@ -306,7 +308,9 @@
                     document.getElementById('live-snap').src = "data:image/jpeg;base64," + b64Data.replace(/"/g, "");
                 }
 
-            } catch (e) { console.error("Error leyendo Firebase", e); }
+            } catch (e) { 
+                console.error("Error sincronizando con Firebase:", e); 
+            }
         }, 1500);
 
         setInterval(async () => {
