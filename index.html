@@ -76,16 +76,16 @@
             <div class='card'>
                 <div class='card-h'>Biometría IA</div>
                 <div class='sys-grid'>
-                    <div class='sys-item'><span id='b-aves' class='sys-val'>--</span>AVES</div>
-                    <div class='sys-item'><span id='b-peso' class='sys-val'>--</span>PESO</div>
-                    <div class='sys-item'><span id='b-temp' class='sys-val'>--</span>TEMP</div>
+                    <div class='sys-item'><span id='b-aves' class='sys-val'>0</span>AVES</div>
+                    <div class='sys-item'><span id='b-peso' class='sys-val'>1.85 KG</span>PESO</div>
+                    <div class='sys-item'><span id='b-temp' class='sys-val'>32.5°C</span>TEMP</div>
                 </div>
                 <div class='sys-grid' style='margin-top:5px'>
-                    <div class='sys-item' style='grid-column: span 3'><span id='b-estado' class='sys-val' style='color:#a7f3d0'>--</span>ESTADO</div>
+                    <div class='sys-item' style='grid-column: span 3'><span id='b-estado' class='sys-val' style='color:#a7f3d0'>ACTIVOS</span>ESTADO</div>
                 </div>
                 <div class='sys-grid' style='margin-top:5px'>
-                    <div class='sys-item' style='grid-column: span 1'><span id='b-cama' class='sys-val'>--</span>CAMA</div>
-                    <div class='sys-item' style='grid-column: span 2'><span id='b-dist' class='sys-val'>--</span>DISTRIBUCION</div>
+                    <div class='sys-item' style='grid-column: span 1'><span id='b-cama' class='sys-val'>SECA</span>CAMA</div>
+                    <div class='sys-item' style='grid-column: span 2'><span id='b-dist' class='sys-val'>UNIFORME</span>DISTRIBUCION</div>
                 </div>
             </div>
         </div>
@@ -150,15 +150,17 @@
     </div>
 
     <script>
+        // 1. Renderizado seguro de la matriz 4x4
         const matrixEl = document.getElementById('matrix');
-
         if (matrixEl) {
+            let matrixHtml = '';
             for (let y = 0; y < 4; y++) {
                 for (let x = 0; x < 4; x++) {
                     let id = 'F' + y + '_C' + x;
-                    matrixEl.innerHTML += `<div class="cell" id="d_${id}" onclick="openModal('${id}')"><img id="img_${id}" src=""><div class="cell-tag">${id}</div></div>`;
+                    matrixHtml += `<div class="cell" id="d_${id}" onclick="openModal('${id}')"><img id="img_${id}" src=""><div class="cell-tag">${id}</div></div>`;
                 }
             }
+            matrixEl.innerHTML = matrixHtml;
         }
 
         function updateImg(id, url) {
@@ -181,67 +183,10 @@
             if (el) el.innerHTML = html;
         };
 
-        let biometryCache = {};
-        let climaTargetEl = null;
-
-        const inicializarCacheBiometria = () => {
-            const bioLabels = ['AVES', 'PESO', 'TEMP', 'ESTADO', 'CAMA', 'DISTRIBUCION'];
-            const allTags = document.querySelectorAll('*');
-            
-            for (let tag of allTags) {
-                if (tag.children.length === 0) {
-                    const text = tag.textContent.trim().toUpperCase();
-                    
-                    if (bioLabels.includes(text)) {
-                        let container = tag.closest('.sys-item') || tag.parentElement;
-                        if (container) {
-                            const valueEl = Array.from(container.querySelectorAll('*')).find(el => el !== tag && el.children.length === 0);
-                            if (valueEl) {
-                                biometryCache[text] = valueEl;
-                            }
-                        }
-                    }
-
-                    if (text === 'ANALIZANDO...' || text === 'SIN LECTURA' || tag.id === 'clima-dynamic-target') {
-                        climaTargetEl = tag;
-                        climaTargetEl.id = 'clima-dynamic-target';
-                    }
-                }
-            }
-        };
-
         const valOr = (val, def) => (!val || val === '--') ? def : val;
 
-        const actualizarBiometriaUI = (key, value) => {
-            if (biometryCache[key]) {
-                biometryCache[key].innerText = value;
-            }
-        };
-
-        const actualizarClimaUI = (value) => {
-            if (climaTargetEl) {
-                climaTargetEl.innerText = value;
-            }
-        };
-
-        const aplicarMejorasVisuales = () => {
-            const liveSnap = document.getElementById('live-snap');
-            if (liveSnap) {
-                liveSnap.style.width = '100%';
-                liveSnap.style.height = 'auto';
-                liveSnap.style.aspectRatio = '16 / 9';
-                liveSnap.style.objectFit = 'cover'; 
-                
-                if (liveSnap.parentElement) {
-                    liveSnap.parentElement.style.overflow = 'hidden';
-                    liveSnap.parentElement.style.display = 'flex';
-                    liveSnap.parentElement.style.justifyContent = 'center';
-                    liveSnap.parentElement.style.alignItems = 'center';
-                }
-            }
-        };
-
         const crearBotonSonido = () => {
+            if (document.getElementById('btn-estimulo')) return;
             const btn = document.createElement('button');
             btn.id = 'btn-estimulo';
             btn.innerHTML = '🔊 ESTIMULAR AVES';
@@ -270,44 +215,38 @@
                 
                 try {
                     await fetch('/api/cam/sound?action=' + (soundActive ? 'start' : 'stop'));
-                } catch(e) {
-                    console.error("Error [VERBOSE CATCH]: Excepción en petición de sonido.", e);
-                }
+                } catch(e) {}
             };
             document.body.appendChild(btn);
         };
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                aplicarMejorasVisuales();
-                inicializarCacheBiometria();
-                crearBotonSonido();
-            });
-        } else {
-            aplicarMejorasVisuales();
-            inicializarCacheBiometria();
+        window.addEventListener('DOMContentLoaded', () => {
             crearBotonSonido();
-        }
+        });
 
-        let tick = 0;
         let lastCamUpdateTs = 0;
         let lastArdUpdateTs = 0;
         let lastIaUpdateTs = 0;
-
         let camOfflineAlertActive = false;
         let ardOfflineAlertActive = false;
         const TIMEOUT_DESCONEXION_MS = 15000; 
 
+        // 2. Bucle principal blindado
         setInterval(async () => {
             try {
                 const r = await fetch('/api/data');
                 const d = await r.json();
 
+                if (!d) return;
+
+                // Sensores
                 setText('vT', (d.t !== undefined && d.t !== '--' ? d.t : '--') + '°');
                 setText('vH', (d.h !== undefined && d.h !== '--' ? d.h : '--') + '%');
                 setText('vN', d.n !== undefined && d.n !== '--' ? d.n : '--');
                 setText('vR', d.r !== undefined ? (d.r == 1 ? '🌧️' : '⛅') : '--');
                 setText('topDate', d.ts || '--:--');
+                
+                // Hardware Pi & Dell
                 setText('cpu', d.cpu || '--');
                 setText('ram', d.ram || '--');
                 setText('dsk', d.dsk || '--');
@@ -317,16 +256,18 @@
                 setText('dram', d.dram || '--');
                 setText('ddsk', d.ddsk || '--');
                 
-                actualizarClimaUI(d.wp || 'Monitoreando...');
-                actualizarBiometriaUI('AVES', valOr(d.bio_a, '0'));
-                actualizarBiometriaUI('PESO', valOr(d.bio_p, '1.85 KG'));
-                actualizarBiometriaUI('TEMP', valOr(d.bio_t, '32.5°C'));
-                actualizarBiometriaUI('ESTADO', valOr(d.bio_e, 'ACTIVOS'));
-                actualizarBiometriaUI('CAMA', valOr(d.bio_c, 'SECA'));
-                actualizarBiometriaUI('DISTRIBUCION', valOr(d.bio_d, 'UNIFORME'));
+                // Clima y Biometría directos por ID
+                setText('w-pred', d.wp || 'Monitoreando...');
+                setText('b-aves', valOr(d.bio_a, '0'));
+                setText('b-peso', valOr(d.bio_p, '1.85 KG'));
+                setText('b-temp', valOr(d.bio_t, '32.5°C'));
+                setText('b-estado', valOr(d.bio_e, 'ACTIVOS'));
+                setText('b-cama', valOr(d.bio_c, 'SECA'));
+                setText('b-dist', valOr(d.bio_d, 'UNIFORME'));
 
-                let terminalEl = document.getElementById('terminal-remoto') || document.getElementById('terminal') || document.getElementById('chat');
-                let sysLogsData = d.sys_logs || d.logs;[cite: 1, 4]
+                // Terminal Remoto (Soporte dual)
+                let terminalEl = document.getElementById('chat');
+                let sysLogsData = d.sys_logs || d.logs;
                 if (terminalEl && sysLogsData && Array.isArray(sysLogsData)) {
                     let wasAtBottomTerm = terminalEl.scrollHeight - terminalEl.scrollTop <= terminalEl.clientHeight + 10;
                     let formattedLogs = sysLogsData.map(log => {
@@ -338,39 +279,32 @@
                     if (wasAtBottomTerm) terminalEl.scrollTop = terminalEl.scrollHeight;
                 }
 
+                // Data Logger Arduino
                 let sLogEl = document.getElementById('sensor-log');
                 if (sLogEl && d.s_logs && Array.isArray(d.s_logs)) {
                     let wasAtBottomS = sLogEl.scrollHeight - sLogEl.scrollTop <= sLogEl.clientHeight + 10;
-                    if (sLogEl.tagName === 'TEXTAREA') {
-                        sLogEl.value = d.s_logs.join('\n');
-                    } else {
-                        sLogEl.innerHTML = d.s_logs.join('<br>'); 
-                    }
+                    sLogEl.innerHTML = d.s_logs.join('<br>'); 
                     if (wasAtBottomS) sLogEl.scrollTop = sLogEl.scrollHeight;
                 }
 
+                // Alertas IA
                 let latestAlert = 'ESPERANDO ANÁLISIS...';
                 let iaLogEl = document.getElementById('ia-log');
                 if (d.ia_logs && Array.isArray(d.ia_logs)) {
                     let wasAtBottomIA = iaLogEl.scrollHeight - iaLogEl.scrollTop <= iaLogEl.clientHeight + 10;
                     iaLogEl.innerHTML = d.ia_logs.join('<br><br>');
                     if (wasAtBottomIA) iaLogEl.scrollTop = iaLogEl.scrollHeight;
-                }
-                if (d.ia_logs && d.ia_logs.length > 0) {
-                    let lastLog = d.ia_logs[d.ia_logs.length - 1];
-                    if (typeof lastLog === 'string') {
-                        latestAlert = lastLog.replace('► ', ''); 
+                    if (d.ia_logs.length > 0) {
+                        let lastLog = d.ia_logs[d.ia_logs.length - 1];
+                        if (typeof lastLog === 'string') latestAlert = lastLog.replace('► ', ''); 
                     }
                 }
 
+                // Banner y latidos
                 let currentTime = Date.now();
                 let pulseCam = document.getElementById('cam-pulse');
                 if (d.lcu && d.lcu > lastCamUpdateTs) {
-                    if (pulseCam) {
-                        pulseCam.classList.remove('beat');
-                        void pulseCam.offsetWidth;
-                        pulseCam.classList.add('beat');
-                    }
+                    if (pulseCam) { pulseCam.classList.remove('beat'); void pulseCam.offsetWidth; pulseCam.classList.add('beat'); }
                     lastCamUpdateTs = d.lcu;
                     camOfflineAlertActive = false;
                 } else if (lastCamUpdateTs > 0 && (currentTime - lastCamUpdateTs > TIMEOUT_DESCONEXION_MS)) {
@@ -379,11 +313,7 @@
 
                 let pulseArd = document.getElementById('ard-pulse');
                 if (d.lau && d.lau > lastArdUpdateTs) {
-                    if (pulseArd) {
-                        pulseArd.classList.remove('beat');
-                        void pulseArd.offsetWidth;
-                        pulseArd.classList.add('beat');
-                    }
+                    if (pulseArd) { pulseArd.classList.remove('beat'); void pulseArd.offsetWidth; pulseArd.classList.add('beat'); }
                     lastArdUpdateTs = d.lau;
                     ardOfflineAlertActive = false;
                 } else if (lastArdUpdateTs > 0 && (currentTime - lastArdUpdateTs > TIMEOUT_DESCONEXION_MS)) {
@@ -400,19 +330,15 @@
                 } else {
                     bannerHtml += `<span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
                 }
-
                 setHTML('banner', bannerHtml);
 
                 let pulseIa = document.getElementById('ia-pulse');
                 if (d.liu && d.liu > lastIaUpdateTs) {
-                    if (pulseIa) {
-                        pulseIa.classList.remove('beat');
-                        void pulseIa.offsetWidth;
-                        pulseIa.classList.add('beat');
-                    }
+                    if (pulseIa) { pulseIa.classList.remove('beat'); void pulseIa.offsetWidth; pulseIa.classList.add('beat'); }
                     lastIaUpdateTs = d.liu;
                 }
 
+                // WiFi bars
                 if (d.ws) {
                     let dbmStr = String(d.ws).replace('dBm', '').trim();
                     let dbm = parseInt(dbmStr);
@@ -422,19 +348,12 @@
                         else if (dbm > -60) bars = 3;
                         else if (dbm > -70) bars = 2;
                         else if (dbm > -120) bars = 1;
-                        
                         for (let i = 1; i <= 4; i++) {
                             const barEl = document.getElementById('wb' + i);
                             if (barEl) barEl.classList.toggle('on', i <= bars);
                         }
                         setText('wsig-txt', d.ws);
                     }
-                } else {
-                    for (let i = 1; i <= 4; i++) {
-                        const barEl = document.getElementById('wb' + i);
-                        if (barEl) barEl.classList.remove('on');
-                    }
-                    setText('wsig-txt', '--');
                 }
 
                 if (d.ac) {
@@ -448,18 +367,15 @@
 
                 updateImg('live-snap', '/proxy/cam?t=' + Date.now());
 
-                tick++;
-                if (tick >= 2) {
-                    tick = 0;
-                    for (let y = 0; y < 4; y++) {
-                        for (let x = 0; x < 4; x++) {
-                            let cid = 'F' + y + '_C' + x;
-                            updateImg('img_' + cid, '/proxy/cam?cell=' + cid + '&t=' + Date.now());
-                        }
+                // Actualización de la matriz de celdas 4x4
+                for (let y = 0; y < 4; y++) {
+                    for (let x = 0; x < 4; x++) {
+                        let cid = 'F' + y + '_C' + x;
+                        updateImg('img_' + cid, '/proxy/cam?cell=' + cid + '&t=' + Date.now());
                     }
                 }
             } catch (e) {
-                console.error("Error [VERBOSE CATCH]: Excepción obteniendo datos asíncronos.", e);
+                console.error("Error en bucle asíncrono:", e);
             }
         }, 1000);
 
@@ -467,7 +383,6 @@
             const modalImg = document.getElementById('modal-img');
             const sourceImg = document.getElementById('img_' + id);
             const modalEl = document.getElementById('modal');
-            
             if (modalImg && sourceImg && modalEl) {
                 modalImg.src = sourceImg.src;
                 modalEl.style.display = 'flex';
