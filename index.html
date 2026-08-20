@@ -2,7 +2,7 @@
 <html lang='es'>
 <head>
     <meta charset='UTF-8'>
-    <title>ZENTINEL REMOTE DASHBOARD (GITHUB)</title>
+    <title>ZENTINEL REMOTE LOCAL WIDE</title>
     <style>
         body { background: #0b1120; color: #f8fafc; font-family: sans-serif; margin: 0; overflow-y: auto }
         .header { background: #020617; border-bottom: 2px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100 }
@@ -11,35 +11,28 @@
         .col { display: flex; flex-direction: column; gap: 10px }
         .card { background: #111827; border: 1px solid #1e293b; border-radius: 4px; padding: 10px }
         .card-h { font-size: 10px; color: #38bdf8; font-weight: 800; border-bottom: 1px solid #1e293b; margin-bottom: 10px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
-        .card-h span.external-link { font-size: 9px; color: #94a3b8; font-weight: normal; }
         .card.clickable { cursor: pointer; transition: border-color 0.2s ease; }
         .card.clickable:hover { border-color: #38bdf8; }
         .gauge-box { background: #020617; border-radius: 50%; width: 85px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 10px; border: 3px solid #22c55e }
         .v-val { font-size: 18px; font-weight: bold }
         .v-lbl { font-size: 8px; color: #94a3b8 }
         .live-snap { width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; border-radius: 4px; object-fit: cover; border: 2px solid #334155 }
-        .matrix { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; margin-top: 10px }
+        .matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 10px }
         .cell { height: 32px; background: #000; border: 1px solid #1e293b; position: relative; border-radius: 2px; cursor: pointer; overflow: hidden; transition: border 0.3s ease; box-sizing: border-box; }
         .cell img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: opacity 0.3s ease; }
         .cell.active { border: 2px solid #10b981; box-shadow: inset 0 0 10px #10b981; }
         .cell.active img { opacity: 1; }
         .cell-tag { position: absolute; bottom: 0; width: 100%; font-size: 5px; background: rgba(0,0,0,0.8); text-align: center; color: #38bdf8 }
-        
-        .preset-marker { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 4px #ef4444; display: none; }
-        .cell.has-preset .preset-marker { display: block; }
-        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center }
         .modal img { max-width: 90%; max-height: 80%; border: 2px solid #38bdf8; border-radius: 8px }
         .close-btn { position: absolute; top: 20px; right: 20px; padding: 10px; background: #ef4444; color: #fff; cursor: pointer; border-radius: 4px; font-weight: bold }
         .sys-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px }
         .sys-item { background: #020617; padding: 5px; text-align: center; font-size: 9px; border: 1px solid #1e293b }
         .sys-val { display: block; color: #38bdf8; font-weight: bold }
-        
         #chat, #sensor-log, #ia-log { white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; }
         #chat { color: #10b981; font-family: monospace; }
         #sensor-log { color: #f8fafc; font-family: monospace; }
         #ia-log { color: #38bdf8; font-family: monospace; }
-        
         .wifi-container { display: flex; align-items: flex-end; gap: 2px; height: 12px; justify-content: center; margin-bottom: 2px; }
         .w-bar { width: 3px; background: #334155; border-radius: 1px; }
         .w-bar.on { background: #10b981; box-shadow: 0 0 5px #10b981; }
@@ -56,7 +49,7 @@
     </div>
 
     <div class='header'>
-        <div class='brand'>ZENTINEL REMOTE DASHBOARD</div>
+        <div class='brand'>ZENTINEL REMOTE LOCAL</div>
         <div id='topDate' style='font-family:monospace;color:#94a3b8'>--/--/-- --:--:--</div>
     </div>
 
@@ -71,7 +64,7 @@
             </div>
             
             <div class='card clickable' onclick="window.open('https://www.star.nesdis.noaa.gov/', '_blank')" title="Abrir Satélite NOAA en otra pestaña">
-                <div class='card-h'>Satélite NOAA <span class='external-link'>↗ Abrir</span></div>
+                <div class='card-h'>Satélite NOAA <span style='font-size:9px;color:#94a3b8;'>↗ Abrir</span></div>
                 <img src='https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/car/GEOCOLOR/latest.jpg' style='width:100%; pointer-events: none;'>
             </div>
 
@@ -103,11 +96,11 @@
             <div id='matrix' class='matrix'></div>
             <div class='card'>
                 <div class='card-h'>Terminal Remoto</div>
-                <div id='chat' style='height:120px;background:#020617;border:1px solid #38bdf8;padding:5px;font-size:9px;'></div>
+                <div id='chat' style='height:120px;background:#020617;border:1px solid #38bdf8;padding:5px;font-size:9px;overflow-y:auto'></div>
             </div>
             <div class='card'>
                 <div class='card-h'>Data Logger Arduino</div>
-                <div id='sensor-log' style='height:120px;background:#020617;border:1px solid #22c55e;padding:5px;font-size:10px;'></div>
+                <div id='sensor-log' style='height:120px;background:#020617;border:1px solid #22c55e;padding:5px;font-size:10px;overflow-y:auto;color:#f8fafc'></div>
             </div>
         </div>
 
@@ -138,43 +131,115 @@
                     <div class='sys-item'>IA: <span id='ia-pulse' class='pulse-dot'></span></div>
                 </div>
             </div>
-            <div class='card'>
-                <div class='card-h'>Telemetría IA (Dell)</div>
-                <div class='sys-grid'>
-                    <div class='sys-item'><span id='dcpu' class='sys-val'>--</span>CPU</div>
-                    <div class='sys-item'><span id='dram' class='sys-val'>--</span>RAM</div>
-                    <div class='sys-item'><span id='ddsk' class='sys-val'>--</span>DSK</div>
-                </div>
-            </div>
+        
             <div class='card'>
                 <div class='card-h'>Alertas IA (Dell)</div>
-                <div id='ia-log' style='height:150px;padding:5px;font-size:10px;'></div>
+                <div id='ia-log' style='height:150px;overflow-y:auto;font-size:10px;font-family:monospace;padding:5px;'></div>
             </div>
             
             <div class='card clickable' onclick="window.open('https://onamet.gob.do/', '_blank')" title="Abrir fuente de Radar RD en otra pestaña">
-                <div class='card-h'>Radar RD <span class='external-link'>↗ Abrir</span></div>
+                <div class='card-h'>Radar RD <span style='font-size:9px;color:#94a3b8;'>↗ Abrir</span></div>
                 <iframe style='width:100%;height:130px;border:0;pointer-events:none;' src='https://radar-met2.sna.gob.do/'></iframe>
             </div>
 
             <div class='card clickable' onclick="window.open('https://www.windy.com/', '_blank')" title="Abrir Windy PP en otra pestaña">
-                <div class='card-h'>Windy PP <span class='external-link'>↗ Abrir</span></div>
+                <div class='card-h'>Windy PP <span style='font-size:9px;color:#94a3b8;'>↗ Abrir</span></div>
                 <iframe style='width:100%;height:130px;border:0;pointer-events:none;' src='https://embed.windy.com/embed2.html?lat=19.7253&lon=-70.7397&zoom=11'></iframe>
             </div>
         </div>
     </div>
 
     <script>
-        const FIREBASE_DB_URL = "https://galpon-capellan-default-rtdb.firebaseio.com/";
-        const FIREBASE_AUTH = "?auth=XwigAQQngtzJFzmyRrKOKIQ1b4wF6oq90un5kfS3";
-
-        // Matriz ajustada a 4 filas (y < 4)
         const matrixEl = document.getElementById('matrix');
-        for (let y = 0; y < 4; y++) {
-            for (let x = 0; x < 8; x++) {
-                let id = 'F' + y + '_C' + x;
-                matrixEl.innerHTML += `<div class="cell" id="d_${id}" onclick="openModal('${id}')"><img id="img_${id}" src=""><div class="preset-marker"></div><div class="cell-tag">${id}</div></div>`;
+
+        if (matrixEl) {
+            for (let y = 0; y < 4; y++) {
+                for (let x = 0; x < 4; x++) {
+                    let id = 'F' + y + '_C' + x;
+                    matrixEl.innerHTML += `<div class="cell" id="d_${id}" onclick="openModal('${id}')"><img id="img_${id}" src=""><div class="cell-tag">${id}</div></div>`;
+                }
             }
         }
+
+        function updateImg(id, url) {
+            let i = new Image();
+            i.onload = function () {
+                let el = document.getElementById(id);
+                if (el) el.src = this.src;
+            };
+            i.onerror = function () {};
+            i.src = url;
+        }
+
+        const setText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        };
+
+        const setHTML = (id, html) => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = html;
+        };
+
+        let biometryCache = {};
+        let climaTargetEl = null;
+
+        const inicializarCacheBiometria = () => {
+            const bioLabels = ['AVES', 'PESO', 'TEMP', 'ESTADO', 'CAMA', 'DISTRIBUCION'];
+            const allTags = document.querySelectorAll('*');
+            
+            for (let tag of allTags) {
+                if (tag.children.length === 0) {
+                    const text = tag.textContent.trim().toUpperCase();
+                    
+                    if (bioLabels.includes(text)) {
+                        let container = tag.closest('.sys-item') || tag.parentElement;
+                        if (container) {
+                            const valueEl = Array.from(container.querySelectorAll('*')).find(el => el !== tag && el.children.length === 0);
+                            if (valueEl) {
+                                biometryCache[text] = valueEl;
+                            }
+                        }
+                    }
+
+                    if (text === 'ANALIZANDO...' || text === 'SIN LECTURA' || tag.id === 'clima-dynamic-target') {
+                        climaTargetEl = tag;
+                        climaTargetEl.id = 'clima-dynamic-target';
+                    }
+                }
+            }
+        };
+
+        const valOr = (val, def) => (!val || val === '--') ? def : val;
+
+        const actualizarBiometriaUI = (key, value) => {
+            if (biometryCache[key]) {
+                biometryCache[key].innerText = value;
+            }
+        };
+
+        const actualizarClimaUI = (value) => {
+            if (climaTargetEl) {
+                climaTargetEl.innerText = value;
+            }
+        };
+
+        const aplicarMejorasVisuales = () => {
+            const liveSnap = document.getElementById('live-snap');
+            if (liveSnap) {
+                liveSnap.style.width = '100%';
+                liveSnap.style.height = 'auto';
+                liveSnap.style.aspectRatio = '16 / 9';
+                liveSnap.style.objectFit = 'cover'; 
+                
+                if (liveSnap.parentElement) {
+                    liveSnap.parentElement.style.overflow = 'hidden';
+                    liveSnap.parentElement.style.display = 'flex';
+                    liveSnap.parentElement.style.justifyContent = 'center';
+                    liveSnap.parentElement.style.alignItems = 'center';
+                }
+            }
+        };
 
         const crearBotonSonido = () => {
             const btn = document.createElement('button');
@@ -204,80 +269,151 @@
                 btn.style.borderColor = soundActive ? '#991b1b' : '#b45309';
                 
                 try {
-                    await fetch('/api/cam/sound?action=' + (soundActive ? 'start' : 'stop')).catch(() => {});
-                } catch(e) {}
+                    await fetch('/api/cam/sound?action=' + (soundActive ? 'start' : 'stop'));
+                } catch(e) {
+                    console.error("Error [VERBOSE CATCH]: Excepción en petición de sonido.", e);
+                }
             };
             document.body.appendChild(btn);
         };
-        crearBotonSonido();
 
-        let lastCamUpdateTs = 0; let lastArdUpdateTs = 0; let lastIaUpdateTs = 0;
-        const valOr = (val, def) => (!val || val === '--') ? def : val;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                aplicarMejorasVisuales();
+                inicializarCacheBiometria();
+                crearBotonSonido();
+            });
+        } else {
+            aplicarMejorasVisuales();
+            inicializarCacheBiometria();
+            crearBotonSonido();
+        }
+
+        let tick = 0;
+        let lastCamUpdateTs = 0;
+        let lastArdUpdateTs = 0;
+        let lastIaUpdateTs = 0;
+
+        let camOfflineAlertActive = false;
+        let ardOfflineAlertActive = false;
+        const TIMEOUT_DESCONEXION_MS = 15000; 
 
         setInterval(async () => {
             try {
-                const resp = await fetch(FIREBASE_DB_URL + "zentinel/data.json" + FIREBASE_AUTH + "&t=" + Date.now());
-                if (!resp.ok) throw new Error("Firebase rechazó la conexión (HTTP " + resp.status + ")");
-                const d = await resp.json();
+                const r = await fetch('/api/data');
+                const d = await r.json();
 
-                if (!d) return;
-
-                document.getElementById('vT').innerText = (d.t !== undefined ? d.t : '--') + '°';
-                document.getElementById('vH').innerText = (d.h !== undefined ? d.h : '--') + '%';
-                document.getElementById('vN').innerText = d.n !== undefined ? d.n : '--';
-                document.getElementById('vR').innerText = d.r !== undefined ? (d.r == 1 ? '🌧️' : '⛅') : '--';
+                setText('vT', (d.t !== undefined && d.t !== '--' ? d.t : '--') + '°');
+                setText('vH', (d.h !== undefined && d.h !== '--' ? d.h : '--') + '%');
+                setText('vN', d.n !== undefined && d.n !== '--' ? d.n : '--');
+                setText('vR', d.r !== undefined ? (d.r == 1 ? '🌧️' : '⛅') : '--');
+                setText('topDate', d.ts || '--:--');
+                setText('cpu', d.cpu || '--');
+                setText('ram', d.ram || '--');
+                setText('dsk', d.dsk || '--');
+                setText('ptemp', d.pt || '--');
+                setText('wssid', d.wn || '--');
+                setText('dcpu', d.dcpu || '--');
+                setText('dram', d.dram || '--');
+                setText('ddsk', d.ddsk || '--');
                 
-                document.getElementById('topDate').innerText = d.ts || '--:--';
-                document.getElementById('cpu').innerText = d.cpu || '--';
-                document.getElementById('ram').innerText = d.ram || '--';
-                document.getElementById('dsk').innerText = d.dsk || '--';
-                document.getElementById('ptemp').innerText = d.pt || '--';
-                document.getElementById('wssid').innerText = d.wn || '--';
-                document.getElementById('dcpu').innerText = d.dcpu || '--';
-                document.getElementById('dram').innerText = d.dram || '--';
-                document.getElementById('ddsk').innerText = d.ddsk || '--';
-                document.getElementById('w-pred').innerText = d.wp || 'Monitoreando...';
-                
-                document.getElementById('b-aves').innerText = valOr(d.bio_a, '0');
-                document.getElementById('b-peso').innerText = valOr(d.bio_p, '1.85 KG');
-                document.getElementById('b-temp').innerText = valOr(d.bio_t, '32.5°C');
-                document.getElementById('b-estado').innerText = valOr(d.bio_e, 'ACTIVOS');
-                document.getElementById('b-cama').innerText = valOr(d.bio_c, 'SECA');
-                document.getElementById('b-dist').innerText = valOr(d.bio_d, 'UNIFORME');
+                actualizarClimaUI(d.wp || 'Monitoreando...');
+                actualizarBiometriaUI('AVES', valOr(d.bio_a, '0'));
+                actualizarBiometriaUI('PESO', valOr(d.bio_p, '1.85 KG'));
+                actualizarBiometriaUI('TEMP', valOr(d.bio_t, '32.5°C'));
+                actualizarBiometriaUI('ESTADO', valOr(d.bio_e, 'ACTIVOS'));
+                actualizarBiometriaUI('CAMA', valOr(d.bio_c, 'SECA'));
+                actualizarBiometriaUI('DISTRIBUCION', valOr(d.bio_d, 'UNIFORME'));
 
-                let chatEl = document.getElementById('chat');
-                if (d.logs && Array.isArray(d.logs)) {
-                    let wasAtBottom = chatEl.scrollHeight - chatEl.scrollTop <= chatEl.clientHeight + 5;
-                    chatEl.innerHTML = d.logs.join('\n');
-                    if (wasAtBottom) chatEl.scrollTop = chatEl.scrollHeight;
+                let terminalEl = document.getElementById('terminal-remoto') || document.getElementById('terminal') || document.getElementById('chat');
+                let sysLogsData = d.sys_logs || d.logs;[cite: 1, 4]
+                if (terminalEl && sysLogsData && Array.isArray(sysLogsData)) {
+                    let wasAtBottomTerm = terminalEl.scrollHeight - terminalEl.scrollTop <= terminalEl.clientHeight + 10;
+                    let formattedLogs = sysLogsData.map(log => {
+                        if (log.includes("ERROR") || log.includes("CATCH")) return `<span style="color: #ef4444;">${log}</span>`;
+                        if (log.includes("Advertencia")) return `<span style="color: #f59e0b;">${log}</span>`;
+                        return `<span style="color: #a7f3d0;">${log}</span>`;
+                    });
+                    terminalEl.innerHTML = formattedLogs.join('<br>');
+                    if (wasAtBottomTerm) terminalEl.scrollTop = terminalEl.scrollHeight;
                 }
-                
+
                 let sLogEl = document.getElementById('sensor-log');
-                if (d.s_logs && Array.isArray(d.s_logs)) {
-                    let wasAtBottomS = sLogEl.scrollHeight - sLogEl.scrollTop <= sLogEl.clientHeight + 5;
-                    sLogEl.innerHTML = d.s_logs.join('\n');
+                if (sLogEl && d.s_logs && Array.isArray(d.s_logs)) {
+                    let wasAtBottomS = sLogEl.scrollHeight - sLogEl.scrollTop <= sLogEl.clientHeight + 10;
+                    if (sLogEl.tagName === 'TEXTAREA') {
+                        sLogEl.value = d.s_logs.join('\n');
+                    } else {
+                        sLogEl.innerHTML = d.s_logs.join('<br>'); 
+                    }
                     if (wasAtBottomS) sLogEl.scrollTop = sLogEl.scrollHeight;
                 }
-                
-                let iaLogEl = document.getElementById('ia-log');
+
                 let latestAlert = 'ESPERANDO ANÁLISIS...';
+                let iaLogEl = document.getElementById('ia-log');
                 if (d.ia_logs && Array.isArray(d.ia_logs)) {
-                    let wasAtBottomIA = iaLogEl.scrollHeight - iaLogEl.scrollTop <= iaLogEl.clientHeight + 5;
+                    let wasAtBottomIA = iaLogEl.scrollHeight - iaLogEl.scrollTop <= iaLogEl.clientHeight + 10;
                     iaLogEl.innerHTML = d.ia_logs.join('<br><br>');
                     if (wasAtBottomIA) iaLogEl.scrollTop = iaLogEl.scrollHeight;
-                    if (d.ia_logs.length > 0) latestAlert = d.ia_logs[d.ia_logs.length - 1].replace('► ', '');
                 }
-                
-                document.getElementById('banner').innerHTML = `<span style='color:#a7f3d0;font-size:9px;text-transform:uppercase;'>[ ESTADO DEL SISTEMA: ${d.ia || 'INICIANDO'} ]</span><span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
-                
+                if (d.ia_logs && d.ia_logs.length > 0) {
+                    let lastLog = d.ia_logs[d.ia_logs.length - 1];
+                    if (typeof lastLog === 'string') {
+                        latestAlert = lastLog.replace('► ', ''); 
+                    }
+                }
+
+                let currentTime = Date.now();
                 let pulseCam = document.getElementById('cam-pulse');
-                if (d.lcu && d.lcu > lastCamUpdateTs) { pulseCam.classList.remove('beat'); void pulseCam.offsetWidth; pulseCam.classList.add('beat'); lastCamUpdateTs = d.lcu; }
+                if (d.lcu && d.lcu > lastCamUpdateTs) {
+                    if (pulseCam) {
+                        pulseCam.classList.remove('beat');
+                        void pulseCam.offsetWidth;
+                        pulseCam.classList.add('beat');
+                    }
+                    lastCamUpdateTs = d.lcu;
+                    camOfflineAlertActive = false;
+                } else if (lastCamUpdateTs > 0 && (currentTime - lastCamUpdateTs > TIMEOUT_DESCONEXION_MS)) {
+                    camOfflineAlertActive = true;
+                }
+
                 let pulseArd = document.getElementById('ard-pulse');
-                if (d.lau && d.lau > lastArdUpdateTs) { pulseArd.classList.remove('beat'); void pulseArd.offsetWidth; pulseArd.classList.add('beat'); lastArdUpdateTs = d.lau; }
+                if (d.lau && d.lau > lastArdUpdateTs) {
+                    if (pulseArd) {
+                        pulseArd.classList.remove('beat');
+                        void pulseArd.offsetWidth;
+                        pulseArd.classList.add('beat');
+                    }
+                    lastArdUpdateTs = d.lau;
+                    ardOfflineAlertActive = false;
+                } else if (lastArdUpdateTs > 0 && (currentTime - lastArdUpdateTs > TIMEOUT_DESCONEXION_MS)) {
+                    ardOfflineAlertActive = true;
+                }
+
+                let bannerHtml = `<span style='color:#a7f3d0;font-size:9px;text-transform:uppercase;'>[ ESTADO DEL SISTEMA: ${d.ia || 'INICIANDO'} ]</span>`;
+                if (camOfflineAlertActive && ardOfflineAlertActive) {
+                    bannerHtml += `<span style='color:#ef4444;font-size:12px;font-weight:bold;'>⚠️ ¡ALERTA CRÍTICA: CÁMARA Y ARDUINO DESCONECTADOS!</span>`;
+                } else if (camOfflineAlertActive) {
+                    bannerHtml += `<span style='color:#f59e0b;font-size:12px;font-weight:bold;'>⚠️ ¡ALERTA: LA CÁMARA ESTÁ FUERA DE LÍNEA!</span>`;
+                } else if (ardOfflineAlertActive) {
+                    bannerHtml += `<span style='color:#f59e0b;font-size:12px;font-weight:bold;'>⚠️ ¡ALERTA: EL ARDUINO ESTÁ FUERA DE LÍNEA!</span>`;
+                } else {
+                    bannerHtml += `<span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
+                }
+
+                setHTML('banner', bannerHtml);
+
                 let pulseIa = document.getElementById('ia-pulse');
-                if (d.liu && d.liu > lastIaUpdateTs) { pulseIa.classList.remove('beat'); void pulseIa.offsetWidth; pulseIa.classList.add('beat'); lastIaUpdateTs = d.liu; }
-                
-                if(d.ws) {
+                if (d.liu && d.liu > lastIaUpdateTs) {
+                    if (pulseIa) {
+                        pulseIa.classList.remove('beat');
+                        void pulseIa.offsetWidth;
+                        pulseIa.classList.add('beat');
+                    }
+                    lastIaUpdateTs = d.liu;
+                }
+
+                if (d.ws) {
                     let dbmStr = String(d.ws).replace('dBm', '').trim();
                     let dbm = parseInt(dbmStr);
                     if (!isNaN(dbm)) {
@@ -286,9 +422,19 @@
                         else if (dbm > -60) bars = 3;
                         else if (dbm > -70) bars = 2;
                         else if (dbm > -120) bars = 1;
-                        for (let i = 1; i <= 4; i++) document.getElementById('wb' + i).classList.toggle('on', i <= bars);
-                        document.getElementById('wsig-txt').innerText = d.ws;
+                        
+                        for (let i = 1; i <= 4; i++) {
+                            const barEl = document.getElementById('wb' + i);
+                            if (barEl) barEl.classList.toggle('on', i <= bars);
+                        }
+                        setText('wsig-txt', d.ws);
                     }
+                } else {
+                    for (let i = 1; i <= 4; i++) {
+                        const barEl = document.getElementById('wb' + i);
+                        if (barEl) barEl.classList.remove('on');
+                    }
+                    setText('wsig-txt', '--');
                 }
 
                 if (d.ac) {
@@ -299,37 +445,33 @@
                         if (target) target.classList.add('active');
                     }
                 }
-                
-                const imgResp = await fetch(FIREBASE_DB_URL + "zentinel/images/live.json" + FIREBASE_AUTH + "&t=" + Date.now());
-                const b64Data = await imgResp.json();
-                if(b64Data) {
-                    document.getElementById('live-snap').src = "data:image/jpeg;base64," + b64Data.replace(/"/g, "");
-                }
 
-            } catch (e) { 
-                console.error("Error sincronizando con Firebase:", e); 
-            }
-        }, 1500);
+                updateImg('live-snap', '/proxy/cam?t=' + Date.now());
 
-        // Actualización de matriz de 4 filas (y < 4)
-        setInterval(async () => {
-            try {
-                for (let y = 0; y < 4; y++) {
-                    for (let x = 0; x < 8; x++) {
-                        let cid = 'F' + y + '_C' + x;
-                        const mResp = await fetch(FIREBASE_DB_URL + "zentinel/images/matrix/" + cid + ".json" + FIREBASE_AUTH + "&t=" + Date.now());
-                        const mData = await mResp.json();
-                        if(mData) {
-                            document.getElementById('img_' + cid).src = "data:image/jpeg;base64," + mData.replace(/"/g, "");
+                tick++;
+                if (tick >= 2) {
+                    tick = 0;
+                    for (let y = 0; y < 4; y++) {
+                        for (let x = 0; x < 4; x++) {
+                            let cid = 'F' + y + '_C' + x;
+                            updateImg('img_' + cid, '/proxy/cam?cell=' + cid + '&t=' + Date.now());
                         }
                     }
                 }
-            } catch (e) {}
-        }, 15000);
+            } catch (e) {
+                console.error("Error [VERBOSE CATCH]: Excepción obteniendo datos asíncronos.", e);
+            }
+        }, 1000);
 
         function openModal(id) {
-            document.getElementById('modal-img').src = document.getElementById('img_' + id).src;
-            document.getElementById('modal').style.display = 'flex';
+            const modalImg = document.getElementById('modal-img');
+            const sourceImg = document.getElementById('img_' + id);
+            const modalEl = document.getElementById('modal');
+            
+            if (modalImg && sourceImg && modalEl) {
+                modalImg.src = sourceImg.src;
+                modalEl.style.display = 'flex';
+            }
         }
     </script>
 </body>
