@@ -150,7 +150,7 @@
     </div>
 
     <script>
-        // 1. Renderizado seguro de la matriz 4x4
+        // Renderizado de matriz 4x4
         const matrixEl = document.getElementById('matrix');
         if (matrixEl) {
             let matrixHtml = '';
@@ -231,7 +231,7 @@
         let ardOfflineAlertActive = false;
         const TIMEOUT_DESCONEXION_MS = 15000; 
 
-        // 2. Bucle principal blindado
+        // Bucle principal de sincronización
         setInterval(async () => {
             try {
                 const r = await fetch('/api/data');
@@ -239,14 +239,12 @@
 
                 if (!d) return;
 
-                // Sensores
                 setText('vT', (d.t !== undefined && d.t !== '--' ? d.t : '--') + '°');
                 setText('vH', (d.h !== undefined && d.h !== '--' ? d.h : '--') + '%');
                 setText('vN', d.n !== undefined && d.n !== '--' ? d.n : '--');
                 setText('vR', d.r !== undefined ? (d.r == 1 ? '🌧️' : '⛅') : '--');
                 setText('topDate', d.ts || '--:--');
                 
-                // Hardware Pi & Dell
                 setText('cpu', d.cpu || '--');
                 setText('ram', d.ram || '--');
                 setText('dsk', d.dsk || '--');
@@ -256,7 +254,6 @@
                 setText('dram', d.dram || '--');
                 setText('ddsk', d.ddsk || '--');
                 
-                // Clima y Biometría directos por ID
                 setText('w-pred', d.wp || 'Monitoreando...');
                 setText('b-aves', valOr(d.bio_a, '0'));
                 setText('b-peso', valOr(d.bio_p, '1.85 KG'));
@@ -265,9 +262,9 @@
                 setText('b-cama', valOr(d.bio_c, 'SECA'));
                 setText('b-dist', valOr(d.bio_d, 'UNIFORME'));
 
-                // Terminal Remoto (Soporte dual)
+                // Terminal Remoto con soporte dual
                 let terminalEl = document.getElementById('chat');
-                let sysLogsData = d.sys_logs || d.logs;
+                let sysLogsData = d.sys_logs || d.logs;[cite: 1, 4]
                 if (terminalEl && sysLogsData && Array.isArray(sysLogsData)) {
                     let wasAtBottomTerm = terminalEl.scrollHeight - terminalEl.scrollTop <= terminalEl.clientHeight + 10;
                     let formattedLogs = sysLogsData.map(log => {
@@ -279,7 +276,6 @@
                     if (wasAtBottomTerm) terminalEl.scrollTop = terminalEl.scrollHeight;
                 }
 
-                // Data Logger Arduino
                 let sLogEl = document.getElementById('sensor-log');
                 if (sLogEl && d.s_logs && Array.isArray(d.s_logs)) {
                     let wasAtBottomS = sLogEl.scrollHeight - sLogEl.scrollTop <= sLogEl.clientHeight + 10;
@@ -287,7 +283,6 @@
                     if (wasAtBottomS) sLogEl.scrollTop = sLogEl.scrollHeight;
                 }
 
-                // Alertas IA
                 let latestAlert = 'ESPERANDO ANÁLISIS...';
                 let iaLogEl = document.getElementById('ia-log');
                 if (d.ia_logs && Array.isArray(d.ia_logs)) {
@@ -300,7 +295,6 @@
                     }
                 }
 
-                // Banner y latidos
                 let currentTime = Date.now();
                 let pulseCam = document.getElementById('cam-pulse');
                 if (d.lcu && d.lcu > lastCamUpdateTs) {
@@ -338,7 +332,6 @@
                     lastIaUpdateTs = d.liu;
                 }
 
-                // WiFi bars
                 if (d.ws) {
                     let dbmStr = String(d.ws).replace('dBm', '').trim();
                     let dbm = parseInt(dbmStr);
@@ -367,7 +360,6 @@
 
                 updateImg('live-snap', '/proxy/cam?t=' + Date.now());
 
-                // Actualización de la matriz de celdas 4x4
                 for (let y = 0; y < 4; y++) {
                     for (let x = 0; x < 4; x++) {
                         let cid = 'F' + y + '_C' + x;
