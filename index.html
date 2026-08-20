@@ -167,8 +167,9 @@
         const FIREBASE_DB_URL = "https://galpon-capellan-default-rtdb.firebaseio.com/";
         const FIREBASE_AUTH = "?auth=XwigAQQngtzJFzmyRrKOKIQ1b4wF6oq90un5kfS3";
 
+        // Matriz ajustada a 4 filas (y < 4)
         const matrixEl = document.getElementById('matrix');
-        for (let y = 0; y < 5; y++) {
+        for (let y = 0; y < 4; y++) {
             for (let x = 0; x < 8; x++) {
                 let id = 'F' + y + '_C' + x;
                 matrixEl.innerHTML += `<div class="cell" id="d_${id}" onclick="openModal('${id}')"><img id="img_${id}" src=""><div class="preset-marker"></div><div class="cell-tag">${id}</div></div>`;
@@ -219,10 +220,7 @@
                 if (!resp.ok) throw new Error("Firebase rechazó la conexión (HTTP " + resp.status + ")");
                 const d = await resp.json();
 
-                if (!d) {
-                    console.warn("Firebase respondió vacío (null)");
-                    return;
-                }
+                if (!d) return;
 
                 document.getElementById('vT').innerText = (d.t !== undefined ? d.t : '--') + '°';
                 document.getElementById('vH').innerText = (d.h !== undefined ? d.h : '--') + '%';
@@ -313,9 +311,10 @@
             }
         }, 1500);
 
+        // Actualización de matriz de 4 filas (y < 4)
         setInterval(async () => {
             try {
-                for (let y = 0; y < 5; y++) {
+                for (let y = 0; y < 4; y++) {
                     for (let x = 0; x < 8; x++) {
                         let cid = 'F' + y + '_C' + x;
                         const mResp = await fetch(FIREBASE_DB_URL + "zentinel/images/matrix/" + cid + ".json" + FIREBASE_AUTH + "&t=" + Date.now());
