@@ -4,42 +4,35 @@
     <meta charset='UTF-8'>
     <title>ZENTINEL REMOTE LOCAL WIDE</title>
     <style>
-        body { background: #0b1120; color: #f8fafc; font-family: sans-serif; margin: 0; overflow-y: auto }
-        .header { background: #020617; border-bottom: 2px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100 }
-        .brand { font-size: 18px; font-weight: 900; color: #38bdf8; letter-spacing: 1px }
-        .layout { display: grid; grid-template-columns: 180px 1fr 300px; gap: 10px; padding: 10px }
-        .col { display: flex; flex-direction: column; gap: 10px }
-        .card { background: #111827; border: 1px solid #1e293b; border-radius: 4px; padding: 10px }
-        .card-h { font-size: 10px; color: #38bdf8; font-weight: 800; border-bottom: 1px solid #1e293b; margin-bottom: 10px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
-        .card.clickable { cursor: pointer; transition: border-color 0.2s ease; }
-        .card.clickable:hover { border-color: #38bdf8; }
-        .gauge-box { background: #020617; border-radius: 50%; width: 85px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 10px; border: 3px solid #22c55e }
-        .v-val { font-size: 18px; font-weight: bold }
-        .v-lbl { font-size: 8px; color: #94a3b8 }
-        .live-snap { width: 100%; height: auto; aspect-ratio: 16 / 9; background: #000; border-radius: 4px; object-fit: cover; border: 2px solid #334155 }
-        .matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 10px }
-        .cell { height: 32px; background: #000; border: 1px solid #1e293b; position: relative; border-radius: 2px; cursor: pointer; overflow: hidden; transition: border 0.3s ease; box-sizing: border-box; }
-        .cell img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; transition: opacity 0.3s ease; }
+        body { background: #0b1120; color: #f8fafc; font-family: sans-serif; margin: 0; overflow-y: auto; }
+        .header { background: #020617; border-bottom: 2px solid #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .brand { font-size: 18px; font-weight: 900; color: #38bdf8; letter-spacing: 1px; }
+        .layout { display: grid; grid-template-columns: 180px 1fr 300px; gap: 10px; padding: 10px; }
+        .col { display: flex; flex-direction: column; gap: 10px; }
+        .card { background: #111827; border: 1px solid #1e293b; border-radius: 4px; padding: 10px; }
+        .card-h { font-size: 10px; color: #38bdf8; font-weight: 800; border-bottom: 1px solid #1e293b; margin-bottom: 10px; text-transform: uppercase; }
+        .gauge-box { background: #020617; border-radius: 50%; width: 85px; height: 85px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 auto 10px; border: 3px solid #22c55e; }
+        .v-val { font-size: 18px; font-weight: bold; }
+        .v-lbl { font-size: 8px; color: #94a3b8; }
+        .live-snap { width: 100%; height: 320px; background: #000; border-radius: 4px; object-fit: cover; border: 2px solid #334155; }
+        .matrix { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-top: 10px; background: #000; border: 1px solid #38bdf8; }
+        .cell { height: 50px; background: #000; border: 0.5px solid #020617; position: relative; cursor: pointer; overflow: hidden; }
+        .cell img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; }
         .cell.active { border: 2px solid #10b981; box-shadow: inset 0 0 10px #10b981; }
-        .cell.active img { opacity: 1; }
-        .cell-tag { position: absolute; bottom: 0; width: 100%; font-size: 5px; background: rgba(0,0,0,0.8); text-align: center; color: #38bdf8 }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center }
-        .modal img { max-width: 90%; max-height: 80%; border: 2px solid #38bdf8; border-radius: 8px }
-        .close-btn { position: absolute; top: 20px; right: 20px; padding: 10px; background: #ef4444; color: #fff; cursor: pointer; border-radius: 4px; font-weight: bold }
-        .sys-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px }
-        .sys-item { background: #020617; padding: 5px; text-align: center; font-size: 9px; border: 1px solid #1e293b }
-        .sys-val { display: block; color: #38bdf8; font-weight: bold }
-        #chat, #sensor-log, #ia-log { white-space: pre-wrap; word-wrap: break-word; overflow-y: auto; }
-        #chat { color: #10b981; font-family: monospace; }
-        #sensor-log { color: #f8fafc; font-family: monospace; }
-        #ia-log { color: #38bdf8; font-family: monospace; }
+        .cell-tag { position: absolute; bottom: 0; width: 100%; font-size: 7px; background: rgba(0,0,0,0.7); text-align: center; color: #38bdf8; font-family: monospace; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center; }
+        .modal img { max-width: 90%; max-height: 80%; border: 2px solid #38bdf8; border-radius: 8px; }
+        .close-btn { position: absolute; top: 20px; right: 20px; padding: 10px; background: #ef4444; color: #fff; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .sys-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .sys-item { background: #020617; padding: 5px; text-align: center; font-size: 9px; border: 1px solid #1e293b; }
+        .sys-val { display: block; color: #38bdf8; font-weight: bold; }
+        #chat, #sensor-log, #ia-log { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; font-size: 9px; overflow-y: auto; height: 120px; background: #020617; border: 1px solid #38bdf8; padding: 5px; color: #10b981; }
+        #ia-log { color: #38bdf8; }
         .wifi-container { display: flex; align-items: flex-end; gap: 2px; height: 12px; justify-content: center; margin-bottom: 2px; }
         .w-bar { width: 3px; background: #334155; border-radius: 1px; }
         .w-bar.on { background: #10b981; box-shadow: 0 0 5px #10b981; }
-        .wb1 { height: 25% } .wb2 { height: 50% } .wb3 { height: 75% } .wb4 { height: 100% }
+        .wb1 { height: 25%; } .wb2 { height: 50%; } .wb3 { height: 75%; } .wb4 { height: 100%; }
         .pulse-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #334155; vertical-align: middle; margin-right: 3px; }
-        .pulse-dot.beat { animation: heartbeat 0.5s ease-out; }
-        @keyframes heartbeat { 0% { transform: scale(1); background: #10b981; box-shadow: 0 0 8px #10b981; } 100% { transform: scale(1); background: #334155; } }
     </style>
 </head>
 <body>
@@ -62,30 +55,27 @@
                 <div class='gauge-box' id='bgN'><span id='vN' class='v-val'>--</span><span class='v-lbl'>NH3</span></div>
                 <div class='card' style='text-align:center;padding:5px;'><span id='vR' style='font-size:25px'>☀️</span></div>
             </div>
-            
-            <div class='card clickable' onclick="window.open('https://www.star.nesdis.noaa.gov/', '_blank')" title="Abrir Satélite NOAA en otra pestaña">
-                <div class='card-h'>Satélite NOAA <span style='font-size:9px;color:#94a3b8;'>↗ Abrir</span></div>
-                <img src='https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/car/GEOCOLOR/latest.jpg' style='width:100%; pointer-events: none;'>
+            <div class='card'>
+                <div class='card-h'>Satélite NOAA</div>
+                <img src='https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/car/GEOCOLOR/latest.jpg' style='width:100%'>
             </div>
-
             <div class='card'>
                 <div class='card-h'>IA Clima</div>
                 <div id='w-pred' style='font-size:10px;font-family:monospace;color:#a7f3d0;'>Analizando...</div>
             </div>
-            
             <div class='card'>
                 <div class='card-h'>Biometría IA</div>
                 <div class='sys-grid'>
-                    <div class='sys-item'><span id='b-aves' class='sys-val'>0</span>AVES</div>
-                    <div class='sys-item'><span id='b-peso' class='sys-val'>1.85 KG</span>PESO</div>
-                    <div class='sys-item'><span id='b-temp' class='sys-val'>32.5°C</span>TEMP</div>
+                    <div class='sys-item'><span id='b-aves' class='sys-val'>--</span>AVES</div>
+                    <div class='sys-item'><span id='b-peso' class='sys-val'>--</span>PESO</div>
+                    <div class='sys-item'><span id='b-temp' class='sys-val'>--</span>TEMP</div>
                 </div>
                 <div class='sys-grid' style='margin-top:5px'>
-                    <div class='sys-item' style='grid-column: span 3'><span id='b-estado' class='sys-val' style='color:#a7f3d0'>ACTIVOS</span>ESTADO</div>
+                    <div class='sys-item' style='grid-column: span 3'><span id='b-estado' class='sys-val' style='color:#a7f3d0'>--</span>ESTADO</div>
                 </div>
                 <div class='sys-grid' style='margin-top:5px'>
-                    <div class='sys-item' style='grid-column: span 1'><span id='b-cama' class='sys-val'>SECA</span>CAMA</div>
-                    <div class='sys-item' style='grid-column: span 2'><span id='b-dist' class='sys-val'>UNIFORME</span>DISTRIBUCION</div>
+                    <div class='sys-item' style='grid-column: span 1'><span id='b-cama' class='sys-val'>--</span>CAMA</div>
+                    <div class='sys-item' style='grid-column: span 2'><span id='b-dist' class='sys-val'>--</span>DISTRIBUCION</div>
                 </div>
             </div>
         </div>
@@ -96,11 +86,11 @@
             <div id='matrix' class='matrix'></div>
             <div class='card'>
                 <div class='card-h'>Terminal Remoto</div>
-                <div id='chat' style='height:120px;background:#020617;border:1px solid #38bdf8;padding:5px;font-size:9px;overflow-y:auto'></div>
+                <div id='chat'></div>
             </div>
             <div class='card'>
                 <div class='card-h'>Data Logger Arduino</div>
-                <div id='sensor-log' style='height:120px;background:#020617;border:1px solid #22c55e;padding:5px;font-size:10px;overflow-y:auto;color:#f8fafc'></div>
+                <div id='sensor-log'></div>
             </div>
         </div>
 
@@ -134,244 +124,34 @@
         
             <div class='card'>
                 <div class='card-h'>Alertas IA (Dell)</div>
-                <div id='ia-log' style='height:150px;overflow-y:auto;font-size:10px;font-family:monospace;padding:5px;'></div>
+                <div id='ia-log' style='height:150px;'></div>
             </div>
-            
-            <div class='card clickable' onclick="window.open('https://onamet.gob.do/', '_blank')" title="Abrir fuente de Radar RD en otra pestaña">
-                <div class='card-h'>Radar RD <span style='font-size:9px;color:#94a3b8;'>↗ Abrir</span></div>
-                <iframe style='width:100%;height:130px;border:0;pointer-events:none;' src='https://radar-met2.sna.gob.do/'></iframe>
+            <div class='card'>
+                <div class='card-h'>Radar RD</div>
+                <iframe style='width:100%;height:130px;border:0;' src='https://radar-met2.sna.gob.do/'></iframe>
             </div>
-
-            <div class='card clickable' onclick="window.open('https://www.windy.com/', '_blank')" title="Abrir Windy PP en otra pestaña">
-                <div class='card-h'>Windy PP <span style='font-size:9px;color:#94a3b8;'>↗ Abrir</span></div>
-                <iframe style='width:100%;height:130px;border:0;pointer-events:none;' src='https://embed.windy.com/embed2.html?lat=19.7253&lon=-70.7397&zoom=11'></iframe>
+            <div class='card'>
+                <div class='card-h'>Windy PP</div>
+                <iframe style='width:100%;height:130px;border:0;' src='https://embed.windy.com/embed2.html?lat=19.7253&lon=-70.7397&zoom=11'></iframe>
             </div>
         </div>
     </div>
-
+    
     <script>
-        // Renderizado de matriz 4x4
+        // Sustituye esta URL por la URL pública que te asigne Render.com
+        const CLOUD_API_URL = "https://tu-servicio.onrender.com/api/data";
+
         const matrixEl = document.getElementById('matrix');
         if (matrixEl) {
-            let matrixHtml = '';
             for (let y = 0; y < 4; y++) {
                 for (let x = 0; x < 4; x++) {
                     let id = 'F' + y + '_C' + x;
-                    matrixHtml += `<div class="cell" id="d_${id}" onclick="openModal('${id}')"><img id="img_${id}" src=""><div class="cell-tag">${id}</div></div>`;
+                    matrixEl.innerHTML += `<div class="cell" id="d_${id}" onclick="openModal('${id}')"><img id="img_${id}" src=""><div class="cell-tag">${id}</div></div>`;
                 }
             }
-            matrixEl.innerHTML = matrixHtml;
         }
 
-        function updateImg(id, url) {
-            let i = new Image();
-            i.onload = function () {
-                let el = document.getElementById(id);
-                if (el) el.src = this.src;
-            };
-            i.onerror = function () {};
-            i.src = url;
-        }
-
-        const setText = (id, text) => {
-            const el = document.getElementById(id);
-            if (el) el.innerText = text;
-        };
-
-        const setHTML = (id, html) => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = html;
-        };
-
-        const valOr = (val, def) => (!val || val === '--') ? def : val;
-
-        const crearBotonSonido = () => {
-            if (document.getElementById('btn-estimulo')) return;
-            const btn = document.createElement('button');
-            btn.id = 'btn-estimulo';
-            btn.innerHTML = '🔊 ESTIMULAR AVES';
-            btn.style.position = 'fixed';
-            btn.style.bottom = '30px';
-            btn.style.right = '30px';
-            btn.style.padding = '12px 24px';
-            btn.style.backgroundColor = '#f59e0b';
-            btn.style.color = '#111';
-            btn.style.border = '2px solid #b45309';
-            btn.style.borderRadius = '8px';
-            btn.style.fontWeight = 'bold';
-            btn.style.cursor = 'pointer';
-            btn.style.zIndex = '9999';
-            btn.style.boxShadow = '0 6px 12px rgba(0,0,0,0.4)';
-            btn.style.fontFamily = 'monospace';
-            btn.style.transition = 'all 0.3s ease';
-
-            let soundActive = false;
-            btn.onclick = async () => {
-                soundActive = !soundActive;
-                btn.innerHTML = soundActive ? '🔇 DETENER SONIDO' : '🔊 ESTIMULAR AVES';
-                btn.style.backgroundColor = soundActive ? '#ef4444' : '#f59e0b';
-                btn.style.color = soundActive ? '#fff' : '#111';
-                btn.style.borderColor = soundActive ? '#991b1b' : '#b45309';
-                
-                try {
-                    await fetch('/api/cam/sound?action=' + (soundActive ? 'start' : 'stop'));
-                } catch(e) {}
-            };
-            document.body.appendChild(btn);
-        };
-
-        window.addEventListener('DOMContentLoaded', () => {
-            crearBotonSonido();
-        });
-
-        let lastCamUpdateTs = 0;
-        let lastArdUpdateTs = 0;
-        let lastIaUpdateTs = 0;
-        let camOfflineAlertActive = false;
-        let ardOfflineAlertActive = false;
-        const TIMEOUT_DESCONEXION_MS = 15000; 
-
-        // Bucle principal de sincronización
-        setInterval(async () => {
-            try {
-                const r = await fetch('/api/data');
-                const d = await r.json();
-
-                if (!d) return;
-
-                setText('vT', (d.t !== undefined && d.t !== '--' ? d.t : '--') + '°');
-                setText('vH', (d.h !== undefined && d.h !== '--' ? d.h : '--') + '%');
-                setText('vN', d.n !== undefined && d.n !== '--' ? d.n : '--');
-                setText('vR', d.r !== undefined ? (d.r == 1 ? '🌧️' : '⛅') : '--');
-                setText('topDate', d.ts || '--:--');
-                
-                setText('cpu', d.cpu || '--');
-                setText('ram', d.ram || '--');
-                setText('dsk', d.dsk || '--');
-                setText('ptemp', d.pt || '--');
-                setText('wssid', d.wn || '--');
-                setText('dcpu', d.dcpu || '--');
-                setText('dram', d.dram || '--');
-                setText('ddsk', d.ddsk || '--');
-                
-                setText('w-pred', d.wp || 'Monitoreando...');
-                setText('b-aves', valOr(d.bio_a, '0'));
-                setText('b-peso', valOr(d.bio_p, '1.85 KG'));
-                setText('b-temp', valOr(d.bio_t, '32.5°C'));
-                setText('b-estado', valOr(d.bio_e, 'ACTIVOS'));
-                setText('b-cama', valOr(d.bio_c, 'SECA'));
-                setText('b-dist', valOr(d.bio_d, 'UNIFORME'));
-
-                // Terminal Remoto con soporte dual
-                let terminalEl = document.getElementById('chat');
-                let sysLogsData = d.sys_logs || d.logs;[cite: 1, 4]
-                if (terminalEl && sysLogsData && Array.isArray(sysLogsData)) {
-                    let wasAtBottomTerm = terminalEl.scrollHeight - terminalEl.scrollTop <= terminalEl.clientHeight + 10;
-                    let formattedLogs = sysLogsData.map(log => {
-                        if (log.includes("ERROR") || log.includes("CATCH")) return `<span style="color: #ef4444;">${log}</span>`;
-                        if (log.includes("Advertencia")) return `<span style="color: #f59e0b;">${log}</span>`;
-                        return `<span style="color: #a7f3d0;">${log}</span>`;
-                    });
-                    terminalEl.innerHTML = formattedLogs.join('<br>');
-                    if (wasAtBottomTerm) terminalEl.scrollTop = terminalEl.scrollHeight;
-                }
-
-                let sLogEl = document.getElementById('sensor-log');
-                if (sLogEl && d.s_logs && Array.isArray(d.s_logs)) {
-                    let wasAtBottomS = sLogEl.scrollHeight - sLogEl.scrollTop <= sLogEl.clientHeight + 10;
-                    sLogEl.innerHTML = d.s_logs.join('<br>'); 
-                    if (wasAtBottomS) sLogEl.scrollTop = sLogEl.scrollHeight;
-                }
-
-                let latestAlert = 'ESPERANDO ANÁLISIS...';
-                let iaLogEl = document.getElementById('ia-log');
-                if (d.ia_logs && Array.isArray(d.ia_logs)) {
-                    let wasAtBottomIA = iaLogEl.scrollHeight - iaLogEl.scrollTop <= iaLogEl.clientHeight + 10;
-                    iaLogEl.innerHTML = d.ia_logs.join('<br><br>');
-                    if (wasAtBottomIA) iaLogEl.scrollTop = iaLogEl.scrollHeight;
-                    if (d.ia_logs.length > 0) {
-                        let lastLog = d.ia_logs[d.ia_logs.length - 1];
-                        if (typeof lastLog === 'string') latestAlert = lastLog.replace('► ', ''); 
-                    }
-                }
-
-                let currentTime = Date.now();
-                let pulseCam = document.getElementById('cam-pulse');
-                if (d.lcu && d.lcu > lastCamUpdateTs) {
-                    if (pulseCam) { pulseCam.classList.remove('beat'); void pulseCam.offsetWidth; pulseCam.classList.add('beat'); }
-                    lastCamUpdateTs = d.lcu;
-                    camOfflineAlertActive = false;
-                } else if (lastCamUpdateTs > 0 && (currentTime - lastCamUpdateTs > TIMEOUT_DESCONEXION_MS)) {
-                    camOfflineAlertActive = true;
-                }
-
-                let pulseArd = document.getElementById('ard-pulse');
-                if (d.lau && d.lau > lastArdUpdateTs) {
-                    if (pulseArd) { pulseArd.classList.remove('beat'); void pulseArd.offsetWidth; pulseArd.classList.add('beat'); }
-                    lastArdUpdateTs = d.lau;
-                    ardOfflineAlertActive = false;
-                } else if (lastArdUpdateTs > 0 && (currentTime - lastArdUpdateTs > TIMEOUT_DESCONEXION_MS)) {
-                    ardOfflineAlertActive = true;
-                }
-
-                let bannerHtml = `<span style='color:#a7f3d0;font-size:9px;text-transform:uppercase;'>[ ESTADO DEL SISTEMA: ${d.ia || 'INICIANDO'} ]</span>`;
-                if (camOfflineAlertActive && ardOfflineAlertActive) {
-                    bannerHtml += `<span style='color:#ef4444;font-size:12px;font-weight:bold;'>⚠️ ¡ALERTA CRÍTICA: CÁMARA Y ARDUINO DESCONECTADOS!</span>`;
-                } else if (camOfflineAlertActive) {
-                    bannerHtml += `<span style='color:#f59e0b;font-size:12px;font-weight:bold;'>⚠️ ¡ALERTA: LA CÁMARA ESTÁ FUERA DE LÍNEA!</span>`;
-                } else if (ardOfflineAlertActive) {
-                    bannerHtml += `<span style='color:#f59e0b;font-size:12px;font-weight:bold;'>⚠️ ¡ALERTA: EL ARDUINO ESTÁ FUERA DE LÍNEA!</span>`;
-                } else {
-                    bannerHtml += `<span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
-                }
-                setHTML('banner', bannerHtml);
-
-                let pulseIa = document.getElementById('ia-pulse');
-                if (d.liu && d.liu > lastIaUpdateTs) {
-                    if (pulseIa) { pulseIa.classList.remove('beat'); void pulseIa.offsetWidth; pulseIa.classList.add('beat'); }
-                    lastIaUpdateTs = d.liu;
-                }
-
-                if (d.ws) {
-                    let dbmStr = String(d.ws).replace('dBm', '').trim();
-                    let dbm = parseInt(dbmStr);
-                    if (!isNaN(dbm)) {
-                        let bars = 0;
-                        if (dbm > -50) bars = 4;
-                        else if (dbm > -60) bars = 3;
-                        else if (dbm > -70) bars = 2;
-                        else if (dbm > -120) bars = 1;
-                        for (let i = 1; i <= 4; i++) {
-                            const barEl = document.getElementById('wb' + i);
-                            if (barEl) barEl.classList.toggle('on', i <= bars);
-                        }
-                        setText('wsig-txt', d.ws);
-                    }
-                }
-
-                if (d.ac) {
-                    let cells = document.querySelectorAll('.cell');
-                    cells.forEach(c => c.classList.remove('active'));
-                    if (d.ac !== 'none') {
-                        let target = document.getElementById('d_' + d.ac);
-                        if (target) target.classList.add('active');
-                    }
-                }
-
-                updateImg('live-snap', '/proxy/cam?t=' + Date.now());
-
-                for (let y = 0; y < 4; y++) {
-                    for (let x = 0; x < 4; x++) {
-                        let cid = 'F' + y + '_C' + x;
-                        updateImg('img_' + cid, '/proxy/cam?cell=' + cid + '&t=' + Date.now());
-                    }
-                }
-            } catch (e) {
-                console.error("Error en bucle asíncrono:", e);
-            }
-        }, 1000);
-
-        function openModal(id) {
+        window.openModal = function(id) {
             const modalImg = document.getElementById('modal-img');
             const sourceImg = document.getElementById('img_' + id);
             const modalEl = document.getElementById('modal');
@@ -379,7 +159,78 @@
                 modalImg.src = sourceImg.src;
                 modalEl.style.display = 'flex';
             }
+        };
+
+        async function sincronizarConNube() {
+            try {
+                const response = await fetch(CLOUD_API_URL);
+                const d = await response.json();
+                if (!d) return;
+
+                document.getElementById('vT').innerText = (d.temperatura !== undefined ? d.temperatura : (d.t || '--')) + '°';
+                document.getElementById('vH').innerText = (d.humedad !== undefined ? d.humedad : (d.h || '--')) + '%';
+                document.getElementById('vN').innerText = d.nh3_ppm !== undefined ? d.nh3_ppm : (d.n || '--');
+                let lluviaVal = d.lluvia !== undefined ? d.lluvia : d.r;
+                document.getElementById('vR').innerText = lluviaVal !== undefined ? (lluviaVal === "SI" || lluviaVal == 1 ? '🌧️' : '⛅') : '☀️';
+
+                document.getElementById('topDate').innerText = d.ts || '--:--';
+                document.getElementById('cpu').innerText = d.cpu || '--';
+                document.getElementById('ram').innerText = d.ram || '--';
+                document.getElementById('dsk').innerText = d.dsk || '--';
+                document.getElementById('wssid').innerText = d.wn || '--';
+
+                if(d.wp) document.getElementById('w-pred').innerText = d.wp;
+
+                document.getElementById('b-aves').innerText = d.bio_a || '--';
+                document.getElementById('b-peso').innerText = d.bio_p || '--';
+                if(d.bio_t) document.getElementById('b-temp').innerText = d.bio_t || '--';
+                if(d.bio_e) document.getElementById('b-estado').innerText = d.bio_e || '--';
+                if(d.bio_c) document.getElementById('b-cama').innerText = d.bio_c || '--';
+                if(d.bio_d) document.getElementById('b-dist').innerText = d.bio_d || '--';
+
+                let latestAlert = 'ESPERANDO ANÁLISIS...';
+                if (d.ia_logs && Array.isArray(d.ia_logs) && d.ia_logs.length > 0) {
+                    let lastLog = d.ia_logs[d.ia_logs.length - 1];
+                    if (typeof lastLog === 'string') {
+                        latestAlert = lastLog.replace('► ', '');
+                    }
+                }
+                let bannerHtml = `<span style='color:#a7f3d0;font-size:9px;text-transform:uppercase;'>[ ESTADO DEL SISTEMA: ${d.ia || 'INICIANDO'} ]</span>`;
+                bannerHtml += `<span style='color:#38bdf8;font-size:13px;'>${latestAlert}</span>`;
+                document.getElementById('banner').innerHTML = bannerHtml;
+
+                if(d.sys_logs && Array.isArray(d.sys_logs)) {
+                    document.getElementById('chat').innerHTML = d.sys_logs.join('<br>');
+                }
+                if(d.s_logs && Array.isArray(d.s_logs)) {
+                    document.getElementById('sensor-log').innerHTML = d.s_logs.join('<br>');
+                }
+                if(d.ia_logs && Array.isArray(d.ia_logs)) {
+                    document.getElementById('ia-log').innerHTML = d.ia_logs.join('<br><br>');
+                }
+
+                if (d.cam_snapshot_url) {
+                    document.getElementById('live-snap').src = d.cam_snapshot_url;
+                }
+                if (d.cells && typeof d.cells === 'object') {
+                    for (let y = 0; y < 4; y++) {
+                        for (let x = 0; x < 4; x++) {
+                            let cid = 'F' + y + '_C' + x;
+                            if (d.cells[cid]) {
+                                let imgEl = document.getElementById('img_' + cid);
+                                if (imgEl) imgEl.src = d.cells[cid];
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Error sincronizando con Render", e);
+            }
         }
+
+        // Consultar cada 2 segundos para mantener el panel en tiempo real
+        setInterval(sincronizarConNube, 2000);
+        sincronizarConNube();
     </script>
 </body>
 </html>
